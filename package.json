@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --trace-warnings dist/index.js",
+    "watch": "tsc.cmd -w",
     "build": "tsc.cmd"
   },
   "keywords": [],
