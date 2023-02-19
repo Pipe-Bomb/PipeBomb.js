@@ -2,7 +2,7 @@ import CollectionCache from "./collection/CollectionCache.js";
 import Context from "./Context.js";
 import TrackCache from "./music/TrackCache.js";
 import V1 from "./version/V1.js";
-export default class MusicService {
+export default class PipeBomb {
     constructor(serverURL, token) {
         this.context = new Context(serverURL, token || null);
         this.trackCache = new TrackCache(this.context);
