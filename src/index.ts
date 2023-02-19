@@ -3,7 +3,7 @@ import Context from "./Context.js";
 import TrackCache from "./music/TrackCache.js";
 import V1 from "./version/V1.js";
 
-export default class MusicService { // test
+export default class PipeBomb { // test
     private readonly context: Context;
     private readonly collectionCache: CollectionCache;
     public readonly trackCache: TrackCache;
