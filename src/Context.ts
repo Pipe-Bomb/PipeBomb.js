@@ -18,7 +18,6 @@ export default class Context {
                     resolve(response);
                 });
             } catch (e) {
-                console.error("error", e);
                 reject(e);
             }
         });

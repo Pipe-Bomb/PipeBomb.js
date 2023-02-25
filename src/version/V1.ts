@@ -35,7 +35,7 @@ export default class V1 extends APIVersion {
                 const collection = Collection.convertJsonToCollection(this.context, this.trackCache, collectionJson);
                 collections.push(collection);
             } catch (e) {
-                console.log(e);
+                
             }
             
         }
