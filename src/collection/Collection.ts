@@ -22,7 +22,6 @@ export default class Collection {
         if (trackList?.length) {
             this.trackList = trackList;
         }
-        this.isDeleted = true;
     }
 
     public async getTrackList(trackCache: TrackCache): Promise<Track[]> {
