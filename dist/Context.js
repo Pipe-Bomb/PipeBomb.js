@@ -13,7 +13,6 @@ export default class Context {
                 });
             }
             catch (e) {
-                console.error("error", e);
                 reject(e);
             }
         });

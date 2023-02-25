@@ -27,7 +27,6 @@ export default class TrackCache {
             this.resetTimer(cachedTrack);
             return cachedTrack.track;
         }
-        console.log("getting track");
         const result = await this.context.makeRequest("get", `v1/tracks/${trackID}`);
         cachedTrack = this.cache.get(trackID);
         if (cachedTrack) {

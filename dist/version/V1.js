@@ -33,7 +33,6 @@ export default class V1 extends APIVersion {
                 collections.push(collection);
             }
             catch (e) {
-                console.log(e);
             }
         }
         return collections;

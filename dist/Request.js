@@ -30,7 +30,6 @@ export default class Request {
         }, error => {
             if (error?.response?.data?.statusCode)
                 return this.sendResponse(error.response.data);
-            console.error(error);
             const response = new Response(error.errno, error.code, error.cause);
             for (let callback of this.responseHandlers) {
                 callback(response);
@@ -53,7 +52,6 @@ export default class Request {
             response = new Response(data.statusCode, data.statusMessage, data.response);
         }
         catch (e) {
-            console.error(e, data.data);
             response = new Response(500, "Internal Server Error", data);
         }
         for (let callback of this.responseHandlers) {
