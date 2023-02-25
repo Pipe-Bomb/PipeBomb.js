@@ -27,7 +27,7 @@ export default class Track {
         if (!this.metadata) {
             const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}`);
             if (info.statusCode != 200) return null;
-            const tempTrack = Track.convertJsonToTrack(this.context, info);
+            const tempTrack = Track.convertJsonToTrack(this.context, info.response);
             if (!tempTrack) return null;
             this.metadata = tempTrack.metadata;
         }
