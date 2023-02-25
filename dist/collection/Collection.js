@@ -11,7 +11,6 @@ export default class Collection {
         if (trackList?.length) {
             this.trackList = trackList;
         }
-        this.isDeleted = true;
     }
     async getTrackList(trackCache) {
         this.checkDeletion();
