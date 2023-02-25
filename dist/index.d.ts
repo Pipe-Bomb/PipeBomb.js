@@ -1,4 +1,5 @@
 import TrackCache from "./music/TrackCache.js";
+import HostInfo from "./HostInfo.js";
 import V1 from "./version/V1.js";
 export default class PipeBomb {
     private readonly context;
@@ -6,4 +7,5 @@ export default class PipeBomb {
     readonly trackCache: TrackCache;
     readonly v1: V1;
     constructor(serverURL: string, token?: string);
+    static checkHost(serverURL: string): Promise<HostInfo | null>;
 }
