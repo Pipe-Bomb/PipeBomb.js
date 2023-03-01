@@ -3,6 +3,7 @@ export default class Collection {
     constructor(context, trackCache, collectionID, name, owner, trackList) {
         this.trackList = null;
         this.isDeleted = false;
+        this.updateCallbacks = [];
         this.context = context;
         this.trackCache = trackCache;
         this.collectionID = collectionID;
@@ -37,6 +38,8 @@ export default class Collection {
                 })
             }
         });
+        if (response.statusCode != 200)
+            throw response;
         const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
         if (!newCollection)
             return;
@@ -51,6 +54,8 @@ export default class Collection {
                 })
             }
         });
+        if (response.statusCode != 200)
+            throw response;
         const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
         if (!newCollection)
             return;
@@ -62,6 +67,16 @@ export default class Collection {
             throw response;
         this.isDeleted = true;
         this.trackList = [];
+        this.pushToCallbacks();
+    }
+    async renameCollection(name) {
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+            name
+        });
+        if (response.statusCode != 200)
+            throw response;
+        this.name = name;
+        this.pushToCallbacks();
     }
     copyFromOtherCollection(collection) {
         this.checkDeletion();
@@ -69,6 +84,7 @@ export default class Collection {
             return;
         this.name = collection.name;
         this.trackList = collection.trackList;
+        this.pushToCallbacks();
     }
     static convertJsonToCollection(context, trackCache, json) {
         const criteria = [
@@ -110,6 +126,24 @@ export default class Collection {
     checkDeletion() {
         if (this.isDeleted)
             throw "Collection is deleted";
+    }
+    pushToCallbacks() {
+        for (let callback of this.updateCallbacks) {
+            callback(this);
+        }
+    }
+    isCollectionDeleted() {
+        return this.isDeleted;
+    }
+    registerUpdateCallback(callback) {
+        if (this.updateCallbacks.indexOf(callback) >= 0)
+            return;
+        this.updateCallbacks.push(callback);
+    }
+    unregisterUpdateCallback(callback) {
+        const index = this.updateCallbacks.indexOf(callback);
+        if (index >= 0)
+            this.updateCallbacks.splice(index, 1);
     }
 }
 //# sourceMappingURL=Collection.js.map
