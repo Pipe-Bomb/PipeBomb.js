@@ -11,6 +11,7 @@ export default class Collection {
     public readonly owner: User;
     private trackList: Track[] = null;
     private isDeleted: boolean = false;
+    private updateCallbacks: ((collection: Collection) => void)[] = [];
 
     constructor(context: Context, trackCache: TrackCache, collectionID: number, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
@@ -49,6 +50,7 @@ export default class Collection {
                 })
             }
         });
+        if (response.statusCode != 200) throw response;
         const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
         if (!newCollection) return;
         this.copyFromOtherCollection(newCollection);
@@ -63,6 +65,7 @@ export default class Collection {
                 })
             }
         });
+        if (response.statusCode != 200) throw response;
         const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
         if (!newCollection) return;
         this.copyFromOtherCollection(newCollection);
@@ -73,6 +76,16 @@ export default class Collection {
         if (response.statusCode != 204) throw response;
         this.isDeleted = true;
         this.trackList = [];
+        this.pushToCallbacks();
+    }
+
+    public async renameCollection(name: string): Promise<void> {
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+            name
+        });
+        if (response.statusCode != 200) throw response;
+        this.name = name;
+        this.pushToCallbacks();
     }
 
 
@@ -81,6 +94,7 @@ export default class Collection {
         if (this.collectionID != collection.collectionID) return;
         this.name = collection.name;
         this.trackList = collection.trackList;
+        this.pushToCallbacks();
     }
 
     public static convertJsonToCollection(context: Context, trackCache: TrackCache, json: any) {
@@ -123,5 +137,25 @@ export default class Collection {
 
     private checkDeletion() {
         if (this.isDeleted) throw "Collection is deleted";
+    }
+
+    private pushToCallbacks() {
+        for (let callback of this.updateCallbacks) {
+            callback(this);
+        }
+    }
+
+    public isCollectionDeleted() {
+        return this.isDeleted;
+    }
+
+    public registerUpdateCallback(callback: (collection: Collection) => void) {
+        if (this.updateCallbacks.indexOf(callback) >= 0) return;
+        this.updateCallbacks.push(callback);
+    }
+
+    public unregisterUpdateCallback(callback: (collection: Collection) => void) {
+        const index = this.updateCallbacks.indexOf(callback);
+        if (index >= 0) this.updateCallbacks.splice(index, 1);
     }
 }
