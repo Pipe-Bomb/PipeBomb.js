@@ -32,7 +32,7 @@ export default class V1 extends APIVersion {
         const collections: Collection[] = [];
         for (let collectionJson of response.response) {
             try {
-                const collection = Collection.convertJsonToCollection(this.context, this.trackCache, collectionJson);
+                const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, collectionJson);
                 collections.push(collection);
             } catch (e) {
                 
@@ -46,7 +46,7 @@ export default class V1 extends APIVersion {
         const response = await this.makeRequest("get", `playlists/${collectionID}`);
         if (response.statusCode != 200) throw response;
 
-        const collection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
+        const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
         return collection;
     }
 
@@ -57,7 +57,7 @@ export default class V1 extends APIVersion {
             tracks: trackList.map(track => track.trackID)
         });
         if (response.statusCode != 201) throw response;
-        const collection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
+        const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
         return collection;
     }
 }

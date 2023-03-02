@@ -2,6 +2,7 @@ import Context from "../Context.js";
 import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache";
 import User from "../User.js";
+import CollectionCache from "./CollectionCache.js";
 
 export default class Collection {
     private readonly context: Context;
@@ -12,10 +13,12 @@ export default class Collection {
     private trackList: Track[] = null;
     private isDeleted: boolean = false;
     private updateCallbacks: ((collection: Collection) => void)[] = [];
+    private collectionCache: CollectionCache;
 
-    constructor(context: Context, trackCache: TrackCache, collectionID: number, name: string, owner: User, trackList?: Track[]) {
+    constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: number, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
         this.trackCache = trackCache;
+        this.collectionCache = collectionCache;
         this.collectionID = collectionID;
         this.name = name;
         this.owner = owner;
@@ -30,7 +33,7 @@ export default class Collection {
         if (this.trackList == null) {
             const info = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}`);
             if (info.statusCode != 200) return null;
-            const newCollection = Collection.convertJsonToCollection(this.context, trackCache, info.response);
+            const newCollection = Collection.convertJsonToCollection(this.context, trackCache, this.collectionCache, info.response);
             if (!newCollection) return null;
             this.trackList = newCollection.trackList;
         }
@@ -51,7 +54,7 @@ export default class Collection {
             }
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
+        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
         if (!newCollection) return;
         this.copyFromOtherCollection(newCollection);
     }
@@ -66,7 +69,7 @@ export default class Collection {
             }
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, response.response);
+        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
         if (!newCollection) return;
         this.copyFromOtherCollection(newCollection);
     }
@@ -89,7 +92,7 @@ export default class Collection {
     }
 
 
-    private copyFromOtherCollection(collection: Collection) {
+    public copyFromOtherCollection(collection: Collection) {
         this.checkDeletion();
         if (this.collectionID != collection.collectionID) return;
         this.name = collection.name;
@@ -97,7 +100,7 @@ export default class Collection {
         this.pushToCallbacks();
     }
 
-    public static convertJsonToCollection(context: Context, trackCache: TrackCache, json: any) {
+    public static convertJsonToCollection(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any) {
         const criteria = [
             typeof json?.collectionID == "number",
             typeof json?.name == "string",
@@ -131,8 +134,8 @@ export default class Collection {
             }
         }
         
-        const collection = new Collection(context, trackCache, json.collectionID, json.name, owner, trackList);
-        return collection;
+        const collection = new Collection(context, trackCache, collectionCache, json.collectionID, json.name, owner, trackList);
+        return collectionCache.setCollection(collection);
     }
 
     private checkDeletion() {
