@@ -2,6 +2,7 @@ import Context from "../Context.js";
 import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache";
 import User from "../User.js";
+import CollectionCache from "./CollectionCache.js";
 export default class Collection {
     private readonly context;
     private readonly trackCache;
@@ -11,15 +12,16 @@ export default class Collection {
     private trackList;
     private isDeleted;
     private updateCallbacks;
-    constructor(context: Context, trackCache: TrackCache, collectionID: number, name: string, owner: User, trackList?: Track[]);
+    private collectionCache;
+    constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: number, name: string, owner: User, trackList?: Track[]);
     getTrackList(trackCache: TrackCache): Promise<Track[]>;
     getName(): string;
     addTracks(...tracks: Track[]): Promise<void>;
     removeTracks(...tracks: Track[]): Promise<void>;
     deleteCollection(): Promise<void>;
     renameCollection(name: string): Promise<void>;
-    private copyFromOtherCollection;
-    static convertJsonToCollection(context: Context, trackCache: TrackCache, json: any): Collection;
+    copyFromOtherCollection(collection: Collection): void;
+    static convertJsonToCollection(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any): Collection;
     private checkDeletion;
     private pushToCallbacks;
     isCollectionDeleted(): boolean;
