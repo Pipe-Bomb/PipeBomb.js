@@ -111,7 +111,7 @@ export default class Collection {
             changed = true;
             this.name = collection.name;
         }
-        if (this.trackList.length == collection.trackList.length) {
+        if (this.trackList !== null && collection.trackList !== null && this.trackList.length == collection.trackList.length) {
             for (let i = 0; i < this.trackList.length; i++) {
                 if (this.trackList[i].trackID != collection.trackList[i].trackID) {
                     changed = true;
