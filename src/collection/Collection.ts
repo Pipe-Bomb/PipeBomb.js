@@ -74,6 +74,17 @@ export default class Collection {
         this.copyFromOtherCollection(newCollection);
     }
 
+    public async setName(name: string): Promise<void> {
+        this.checkDeletion();
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+            name
+        });
+        if (response.statusCode != 200) throw response;
+        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        if (!newCollection) return;
+        this.copyFromOtherCollection(newCollection);
+    }
+
     public async deleteCollection(): Promise<void> {
         const response = await this.context.makeRequest("delete", `v1/playlists/${this.collectionID}`);
         if (response.statusCode != 204) throw response;
@@ -95,9 +106,26 @@ export default class Collection {
     public copyFromOtherCollection(collection: Collection) {
         this.checkDeletion();
         if (this.collectionID != collection.collectionID) return;
-        this.name = collection.name;
+        let changed = false;
+        if (this.name != collection.name) {
+            changed = true;
+            this.name = collection.name;
+        }
+        if (this.trackList.length == collection.trackList.length) {
+            for (let i = 0; i < this.trackList.length; i++) {
+                if (this.trackList[i].trackID != collection.trackList[i].trackID) {
+                    changed = true;
+                    break;
+                }
+            }
+        } else {
+            changed = true;
+        }
         this.trackList = collection.trackList;
-        this.pushToCallbacks();
+
+        if (changed) {
+            this.pushToCallbacks();
+        }
     }
 
     public static convertJsonToCollection(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any) {
