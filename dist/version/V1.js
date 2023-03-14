@@ -56,5 +56,22 @@ export default class V1 extends APIVersion {
         const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
         return collection;
     }
+    async getServices() {
+        const response = await this.makeRequest("get", "services");
+        if (response.statusCode != 200)
+            throw response;
+        const out = [];
+        if (Array.isArray(response.response)) {
+            for (let data of response.response) {
+                if (typeof data.name == "string" && typeof data.prefix == "string") {
+                    out.push({
+                        name: data.name,
+                        prefix: data.prefix
+                    });
+                }
+            }
+        }
+        return out;
+    }
 }
 //# sourceMappingURL=V1.js.map

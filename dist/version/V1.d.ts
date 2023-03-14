@@ -3,6 +3,7 @@ import CollectionCache from "../collection/CollectionCache.js";
 import Context from "../Context.js";
 import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache.js";
+import ServiceInfo from "../ServiceInfo.js";
 import APIVersion from "./APIVersion.js";
 export default class V1 extends APIVersion {
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache);
@@ -10,4 +11,5 @@ export default class V1 extends APIVersion {
     getPlaylists(): Promise<Collection[]>;
     getPlaylist(collectionID: number): Promise<Collection>;
     createPlaylist(name: string, trackList?: Track[]): Promise<Collection>;
+    getServices(): Promise<ServiceInfo[]>;
 }
