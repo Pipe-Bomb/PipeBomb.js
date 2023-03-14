@@ -3,6 +3,7 @@ import CollectionCache from "../collection/CollectionCache.js";
 import Context from "../Context.js";
 import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache.js";
+import ServiceInfo from "../ServiceInfo.js";
 import APIVersion from "./APIVersion.js";
 
 export default class V1 extends APIVersion {
@@ -59,5 +60,24 @@ export default class V1 extends APIVersion {
         if (response.statusCode != 201) throw response;
         const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
         return collection;
+    }
+
+    public async getServices(): Promise<ServiceInfo[]> {
+        const response = await this.makeRequest("get", "services");
+        if (response.statusCode != 200) throw response;
+
+        const out: ServiceInfo[] = [];
+        if (Array.isArray(response.response)) {
+            for (let data of response.response) {
+                if (typeof data.name == "string" && typeof data.prefix == "string") {
+                    out.push({
+                        name: data.name,
+                        prefix: data.prefix
+                    });
+                }
+            }
+        }
+
+        return out;
     }
 }
