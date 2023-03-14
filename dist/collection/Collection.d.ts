@@ -18,6 +18,7 @@ export default class Collection {
     getName(): string;
     addTracks(...tracks: Track[]): Promise<void>;
     removeTracks(...tracks: Track[]): Promise<void>;
+    setName(name: string): Promise<void>;
     deleteCollection(): Promise<void>;
     renameCollection(name: string): Promise<void>;
     copyFromOtherCollection(collection: Collection): void;

@@ -62,6 +62,18 @@ export default class Collection {
             return;
         this.copyFromOtherCollection(newCollection);
     }
+    async setName(name) {
+        this.checkDeletion();
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+            name
+        });
+        if (response.statusCode != 200)
+            throw response;
+        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        if (!newCollection)
+            return;
+        this.copyFromOtherCollection(newCollection);
+    }
     async deleteCollection() {
         const response = await this.context.makeRequest("delete", `v1/playlists/${this.collectionID}`);
         if (response.statusCode != 204)
@@ -83,9 +95,26 @@ export default class Collection {
         this.checkDeletion();
         if (this.collectionID != collection.collectionID)
             return;
-        this.name = collection.name;
+        let changed = false;
+        if (this.name != collection.name) {
+            changed = true;
+            this.name = collection.name;
+        }
+        if (this.trackList.length == collection.trackList.length) {
+            for (let i = 0; i < this.trackList.length; i++) {
+                if (this.trackList[i].trackID != collection.trackList[i].trackID) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        else {
+            changed = true;
+        }
         this.trackList = collection.trackList;
-        this.pushToCallbacks();
+        if (changed) {
+            this.pushToCallbacks();
+        }
     }
     static convertJsonToCollection(context, trackCache, collectionCache, json) {
         const criteria = [
