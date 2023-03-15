@@ -22,10 +22,7 @@ export default class Collection {
         this.collectionID = collectionID;
         this.name = name;
         this.owner = owner;
-
-        if (trackList?.length) {
-            this.trackList = trackList;
-        }
+        this.trackList = trackList;
     }
 
     public async getTrackList(trackCache: TrackCache): Promise<Track[]> {
@@ -111,16 +108,19 @@ export default class Collection {
             changed = true;
             this.name = collection.name;
         }
-        if (this.trackList !== null && collection.trackList !== null && this.trackList.length == collection.trackList.length) {
-            for (let i = 0; i < this.trackList.length; i++) {
-                if (this.trackList[i].trackID != collection.trackList[i].trackID) {
-                    changed = true;
-                    break;
+        if (collection.trackList !== null) {
+            if (this.trackList !== null && this.trackList.length == collection.trackList.length) {
+                for (let i = 0; i < this.trackList.length; i++) {
+                    if (this.trackList[i].trackID != collection.trackList[i].trackID) {
+                        changed = true;
+                        break;
+                    }
                 }
+            } else {
+                changed = true;
             }
-        } else {
-            changed = true;
         }
+        
         this.trackList = collection.trackList;
 
         if (changed) {
