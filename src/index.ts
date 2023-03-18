@@ -22,6 +22,14 @@ export default class PipeBomb {
         this.v1 = new V1(this.context, this.trackCache, this.collectionCache);
     }
 
+    public setHost(serverURL: string) {
+        this.context.serverURL = serverURL;
+    }
+
+    public setToken(token: string) {
+        this.context.token = token;
+    }
+
     public static async checkHost(serverURL: string): Promise<HostInfo | null> {
         if (serverURL.toLowerCase().startsWith("http://")) {
             serverURL = serverURL.substring(7);

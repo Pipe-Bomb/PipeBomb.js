@@ -2,8 +2,8 @@ import Request from "./Request.js";
 import Response from "./Response.js";
 
 export default class Context {
-    protected readonly serverURL: string;
-    protected readonly token: string;
+    public serverURL: string;
+    public token: string;
 
     public constructor(serverURL: string, token: string) {
         this.serverURL = serverURL;
