@@ -3,9 +3,10 @@ import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache.js";
 import User from "../User.js";
 import Collection from "./Collection.js";
+import Suggestions from "./Suggestions.js";
 
 interface CollectionWrapper {
-    collection: Collection,
+    collection: Collection | Suggestions,
     timeout: ReturnType<typeof setTimeout>
 }
 
@@ -19,14 +20,14 @@ export default class CollectionCache {
         this.trackCache = trackCache;
     }
 
-    public setCollection(collection: Collection) {
+    public setCollection(collection: Collection | Suggestions) {
         const existingCollection = this.getCollection(collection.collectionID);
-        if (existingCollection) {
+        if (existingCollection && existingCollection instanceof Collection && collection instanceof Collection) {
             existingCollection.copyFromOtherCollection(collection);
             return existingCollection;
         }
 
-        this.collections.set(collection.collectionID.toString(), {
+        this.collections.set(collection.collectionID, {
             timeout: setTimeout(() => {
                 this.deleteCollection(collection.collectionID);
             }, 600_000),
@@ -36,8 +37,8 @@ export default class CollectionCache {
         return collection;
     }
 
-    public getCollection(collectionID: number): Collection | null {
-        const existingCollection = this.collections.get(collectionID.toString());
+    public getCollection(collectionID: string): Collection | Suggestions | null {
+        const existingCollection = this.collections.get(collectionID);
         if (!existingCollection) return null;
         
         clearTimeout(existingCollection.timeout);
@@ -48,11 +49,10 @@ export default class CollectionCache {
         return existingCollection.collection;
     }
 
-    private deleteCollection(collectionID: number) {
-        const stringID = collectionID.toString();
-        const existingCollection = this.collections.get(stringID);
+    private deleteCollection(collectionID: string) {
+        const existingCollection = this.collections.get(collectionID);
         if (!existingCollection) return;
         clearTimeout(existingCollection.timeout);
-        this.collections.delete(stringID);
+        this.collections.delete(collectionID);
     }
 }

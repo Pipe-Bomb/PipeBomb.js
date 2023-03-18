@@ -8,7 +8,7 @@ import V1 from "./version/V1.js";
 
 export default class PipeBomb {
     private readonly context: Context;
-    private readonly collectionCache: CollectionCache;
+    public readonly collectionCache: CollectionCache;
     public readonly trackCache: TrackCache;
 
     public readonly v1: V1;
