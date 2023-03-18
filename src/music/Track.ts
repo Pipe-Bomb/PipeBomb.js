@@ -2,7 +2,7 @@ import CollectionCache from "../collection/CollectionCache";
 import Suggestions from "../collection/Suggestions.js";
 import Context from "../Context";
 
-interface TrackMeta {
+export interface TrackMeta {
     readonly artists: string[],
     readonly title: string,
     readonly image?: string
