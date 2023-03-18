@@ -43,7 +43,7 @@ export default class V1 extends APIVersion {
         return collections;
     }
 
-    public async getPlaylist(collectionID: number): Promise<Collection> {
+    public async getPlaylist(collectionID: string): Promise<Collection> {
         const response = await this.makeRequest("get", `playlists/${collectionID}`);
         if (response.statusCode != 200) throw response;
 
