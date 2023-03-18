@@ -7,7 +7,7 @@ import CollectionCache from "./CollectionCache.js";
 export default class Collection {
     private readonly context: Context;
     private readonly trackCache: TrackCache;
-    public readonly collectionID: number;
+    public readonly collectionID: string;
     private name: string;
     public readonly owner: User;
     private trackList: Track[] = null;
@@ -15,7 +15,7 @@ export default class Collection {
     private updateCallbacks: ((collection: Collection) => void)[] = [];
     private collectionCache: CollectionCache;
 
-    constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: number, name: string, owner: User, trackList?: Track[]) {
+    constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: string, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
         this.trackCache = trackCache;
         this.collectionCache = collectionCache;
@@ -34,7 +34,7 @@ export default class Collection {
             if (!newCollection) return null;
             this.trackList = newCollection.trackList;
         }
-        return this.trackList;
+        return Array.from(this.trackList);
     }
 
     public getName(): string {
@@ -128,7 +128,7 @@ export default class Collection {
         }
     }
 
-    public static convertJsonToCollection(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any) {
+    public static convertJsonToCollection(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any): Collection {
         const criteria = [
             typeof json?.collectionID == "number",
             typeof json?.name == "string",
@@ -163,7 +163,8 @@ export default class Collection {
         }
         
         const collection = new Collection(context, trackCache, collectionCache, json.collectionID, json.name, owner, trackList);
-        return collectionCache.setCollection(collection);
+        collectionCache.setCollection(collection);
+        return collection;
     }
 
     private checkDeletion() {

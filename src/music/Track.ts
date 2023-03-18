@@ -1,3 +1,5 @@
+import CollectionCache from "../collection/CollectionCache";
+import Suggestions from "../collection/Suggestions.js";
 import Context from "../Context";
 
 interface TrackMeta {
@@ -32,6 +34,24 @@ export default class Track {
             this.metadata = tempTrack.metadata;
         }
         return this.metadata;
+    }
+
+    public async getSuggestedTracks(collectionCache: CollectionCache): Promise<Suggestions> {
+        const existing = collectionCache.getCollection(`${this.trackID}/suggestions`);
+        if (existing && existing instanceof Suggestions) return existing;
+
+        const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/suggested`);
+        if (info.statusCode != 200 || !Array.isArray(info.response)) return null;
+        
+        const tracks: Track[] = [];
+        for (let json of info.response) {
+            const track = Track.convertJsonToTrack(this.context, json);
+            if (track) tracks.push(track);
+        }
+        
+        const suggestions = new Suggestions(collectionCache, this, tracks);
+
+        return suggestions;
     }
 
 
