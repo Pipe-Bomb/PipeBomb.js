@@ -192,6 +192,12 @@ export default class Collection {
         }
         
         const collection = new Collection(context, trackCache, collectionCache, json.collectionID, json.name, owner, trackList);
+        const existingCollection = collectionCache.getCollection(collection.collectionID);
+        if (existingCollection instanceof Collection) {
+            existingCollection.copyFromOtherCollection(collection);
+            return existingCollection;
+        }
+
         collectionCache.setCollection(collection);
         return collection;
     }
