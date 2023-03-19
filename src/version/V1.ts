@@ -21,7 +21,10 @@ export default class V1 extends APIVersion {
 
         for (let trackInfo of response.response) {
             const track = Track.convertJsonToTrack(this.context, trackInfo);
-            if (track) tracks.push(track);
+            if (track) {
+                this.trackCache.updateTrack(track);
+                tracks.push(track);
+            }
         }
         return tracks;
     }

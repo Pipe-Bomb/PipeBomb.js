@@ -1,6 +1,7 @@
 import CollectionCache from "../collection/CollectionCache";
 import Suggestions from "../collection/Suggestions.js";
 import Context from "../Context";
+import TrackCache from "./TrackCache";
 
 export interface TrackMeta {
     readonly artists: string[],
@@ -36,7 +37,7 @@ export default class Track {
         return this.metadata;
     }
 
-    public async getSuggestedTracks(collectionCache: CollectionCache): Promise<Suggestions> {
+    public async getSuggestedTracks(collectionCache: CollectionCache, trackCache: TrackCache): Promise<Suggestions> {
         const existing = collectionCache.getCollection(`${this.trackID}/suggestions`);
         if (existing && existing instanceof Suggestions) return existing;
 
@@ -46,7 +47,10 @@ export default class Track {
         const tracks: Track[] = [];
         for (let json of info.response) {
             const track = Track.convertJsonToTrack(this.context, json);
-            if (track) tracks.push(track);
+            if (track) {
+                trackCache.updateTrack(track);
+                tracks.push(track);
+            }
         }
         
         const suggestions = new Suggestions(collectionCache, this, tracks);

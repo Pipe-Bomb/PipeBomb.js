@@ -14,6 +14,8 @@ export default class Collection {
     private isDeleted: boolean = false;
     private updateCallbacks: ((collection: Collection) => void)[] = [];
     private collectionCache: CollectionCache;
+    private suggestedTracks: Track[] = [];
+    private suggestedTracksUpdated: number = null;
 
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: string, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
@@ -35,6 +37,31 @@ export default class Collection {
             this.trackList = newCollection.trackList;
         }
         return Array.from(this.trackList);
+    }
+
+    public async getSuggestedTracks(trackCache: TrackCache): Promise<Track[]> {
+        this.checkDeletion();
+        if (this.suggestedTracksUpdated && this.suggestedTracksUpdated < Date.now() / 1000 - 600) {
+            return Array.from(this.suggestedTracks);
+        }
+        
+        try {
+            const suggestions = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}/suggested`);
+            console.log(suggestions);
+            if (suggestions.statusCode != 200 || !Array.isArray(suggestions.response)) throw "invalid response";
+
+            const out: Track[] = [];
+            for (let json of suggestions.response) {
+                const track = Track.convertJsonToTrack(this.context, json);
+                if (track) {
+                    trackCache.updateTrack(track);
+                    out.push(track);
+                }
+            }
+            return out;
+        } catch {}
+        
+        return [];
     }
 
     public getName(): string {
