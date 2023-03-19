@@ -47,7 +47,6 @@ export default class Collection {
         
         try {
             const suggestions = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}/suggested`);
-            console.log(suggestions);
             if (suggestions.statusCode != 200 || !Array.isArray(suggestions.response)) throw "invalid response";
 
             const out: Track[] = [];
@@ -58,7 +57,10 @@ export default class Collection {
                     out.push(track);
                 }
             }
-            return out;
+
+            this.suggestedTracks = out;
+            this.suggestedTracksUpdated = Math.floor(Date.now() / 1000);
+            return Array.from(out);
         } catch {}
         
         return [];
