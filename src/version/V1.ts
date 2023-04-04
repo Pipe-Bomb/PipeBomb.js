@@ -1,10 +1,11 @@
-import Collection from "../collection/Collection.js";
+import Playlist from "../collection/Playlist.js";
 import CollectionCache from "../collection/CollectionCache.js";
 import Context from "../Context.js";
 import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache.js";
 import ServiceInfo from "../ServiceInfo.js";
 import APIVersion from "./APIVersion.js";
+import TrackList from "../collection/TrackList.js";
 
 export default class V1 extends APIVersion {
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache) {
@@ -29,14 +30,14 @@ export default class V1 extends APIVersion {
         return tracks;
     }
 
-    public async getPlaylists(): Promise<Collection[]> { // get all playlists owned by you
+    public async getPlaylists(): Promise<Playlist[]> { // get all playlists owned by you
         const response = await this.makeRequest("get", "playlists");
         if (response.statusCode != 200) throw response;
         if (!Array.isArray(response.response)) return [];
-        const collections: Collection[] = [];
+        const collections: Playlist[] = [];
         for (let collectionJson of response.response) {
             try {
-                const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, collectionJson);
+                const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, collectionJson);
                 collections.push(collection);
             } catch (e) {
                 
@@ -46,22 +47,22 @@ export default class V1 extends APIVersion {
         return collections;
     }
 
-    public async getPlaylist(collectionID: string): Promise<Collection> {
+    public async getPlaylist(collectionID: string): Promise<Playlist> {
         const response = await this.makeRequest("get", `playlists/${collectionID}`);
         if (response.statusCode != 200) throw response;
 
-        const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
         return collection;
     }
 
-    public async createPlaylist(name: string, trackList?: Track[]): Promise<Collection> {
+    public async createPlaylist(name: string, trackList?: Track[]): Promise<Playlist> {
         if (!trackList) trackList = [];
         const response = await this.makeRequest("post", "playlists", {
             playlist_title: name,
             tracks: trackList.map(track => track.trackID)
         });
         if (response.statusCode != 201) throw response;
-        const collection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
         return collection;
     }
 
@@ -82,5 +83,67 @@ export default class V1 extends APIVersion {
         }
 
         return out;
+    }
+
+    public async getCharts(): Promise<TrackList[]> {
+        const response = await this.makeRequest("get", "charts");
+        if (response.statusCode != 200) throw response;
+
+        const out: TrackList[] = [];
+        if (Array.isArray(response.response)) {
+            for (let data of response.response) {
+                if (typeof data.slug == "string" && typeof data.name == "string") {
+                    out.push(new TrackList(this.collectionCache, `charts/${data.slug}`, data.name, null));
+                }
+            }
+        }
+
+        return out;
+    }
+
+    public async getChart(chartSlug: string): Promise<TrackList> {
+        const response = await this.makeRequest("get", `charts/${chartSlug}`);
+        if (response.statusCode != 200) throw response;
+
+        try {
+            const json = response.response;
+
+            const criteria = [
+                typeof json?.slug == "string",
+                typeof json?.name == "string",
+                !(json?.trackList) || (() => {
+                    if (!Array.isArray(json.trackList)) return false;
+                    for (let track of json.trackList) {
+                        if (typeof track?.trackID != "string") return false;
+                    }
+                    return true;
+                })()
+            ];
+
+            for (let option of criteria) {
+                if (!option) return null;
+            }
+
+            let trackList: Track[] = null;
+
+            if (json?.trackList) {
+                trackList = [];
+                for (let track of json.trackList) {
+                    let trackObject = Track.convertJsonToTrack(this.context, track);
+                    if (!trackObject) continue;
+                    trackList.push(trackObject);
+                    this.trackCache.updateTrack(trackObject);
+                }
+            }
+
+            const chart = new TrackList(this.collectionCache, "charts/" + json.slug, json.name, trackList);
+            const output = this.collectionCache.setCollection(chart);
+            if (output instanceof TrackList) return output;
+            return chart;
+        } catch (e) {
+            console.error(e);
+        }
+
+        return null;
     }
 }

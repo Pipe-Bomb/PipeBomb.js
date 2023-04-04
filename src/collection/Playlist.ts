@@ -1,10 +1,10 @@
 import Context from "../Context.js";
 import Track from "../music/Track.js";
-import TrackCache from "../music/TrackCache";
+import TrackCache from "../music/TrackCache.js";
 import User from "../User.js";
 import CollectionCache from "./CollectionCache.js";
 
-export default class Collection {
+export default class Playlist {
     private readonly context: Context;
     private readonly trackCache: TrackCache;
     public readonly collectionID: string;
@@ -12,7 +12,7 @@ export default class Collection {
     public readonly owner: User;
     private trackList: Track[] = null;
     private isDeleted: boolean = false;
-    private updateCallbacks: ((collection: Collection) => void)[] = [];
+    private updateCallbacks: ((collection: Playlist) => void)[] = [];
     private collectionCache: CollectionCache;
     private suggestedTracks: Track[] = [];
     private suggestedTracksUpdated: number = null;
@@ -32,7 +32,7 @@ export default class Collection {
         if (this.trackList == null) {
             const info = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}`);
             if (info.statusCode != 200) return null;
-            const newCollection = Collection.convertJsonToCollection(this.context, trackCache, this.collectionCache, info.response);
+            const newCollection = Playlist.convertJsonToPlaylist(this.context, trackCache, this.collectionCache, info.response);
             if (!newCollection) return null;
             this.trackList = newCollection.trackList;
         }
@@ -80,9 +80,9 @@ export default class Collection {
             }
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        const newCollection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
         if (!newCollection) return;
-        this.copyFromOtherCollection(newCollection);
+        this.copyFromOtherPlaylist(newCollection);
     }
 
     public async removeTracks(...tracks: Track[]): Promise<void> {
@@ -95,9 +95,9 @@ export default class Collection {
             }
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        const newCollection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
         if (!newCollection) return;
-        this.copyFromOtherCollection(newCollection);
+        this.copyFromOtherPlaylist(newCollection);
     }
 
     public async setName(name: string): Promise<void> {
@@ -106,9 +106,9 @@ export default class Collection {
             name
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Collection.convertJsonToCollection(this.context, this.trackCache, this.collectionCache, response.response);
+        const newCollection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
         if (!newCollection) return;
-        this.copyFromOtherCollection(newCollection);
+        this.copyFromOtherPlaylist(newCollection);
     }
 
     public async deleteCollection(): Promise<void> {
@@ -129,7 +129,7 @@ export default class Collection {
     }
 
 
-    public copyFromOtherCollection(collection: Collection) {
+    public copyFromOtherPlaylist(collection: Playlist) {
         this.checkDeletion();
         if (this.collectionID != collection.collectionID) return;
         let changed = false;
@@ -157,9 +157,9 @@ export default class Collection {
         }
     }
 
-    public static convertJsonToCollection(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any): Collection {
+    public static convertJsonToPlaylist(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any): Playlist {
         const criteria = [
-            typeof json?.collectionID == "number",
+            typeof json?.collectionID == "string",
             typeof json?.name == "string",
             json?.owner == null || (typeof json?.owner?.userID == "string" && typeof json?.owner?.username == "string"),
             !(json?.trackList) || (() => {
@@ -191,14 +191,15 @@ export default class Collection {
             }
         }
         
-        const collection = new Collection(context, trackCache, collectionCache, json.collectionID, json.name, owner, trackList);
+        const collection = new Playlist(context, trackCache, collectionCache, json.collectionID, json.name, owner, trackList);
         const existingCollection = collectionCache.getCollection(collection.collectionID);
-        if (existingCollection instanceof Collection) {
-            existingCollection.copyFromOtherCollection(collection);
+        if (existingCollection instanceof Playlist) {
+            existingCollection.copyFromOtherPlaylist(collection);
             return existingCollection;
         }
 
-        collectionCache.setCollection(collection);
+        const output = collectionCache.setCollection(collection);
+        if (output instanceof Playlist) return output;
         return collection;
     }
 
@@ -216,12 +217,12 @@ export default class Collection {
         return this.isDeleted;
     }
 
-    public registerUpdateCallback(callback: (collection: Collection) => void) {
+    public registerUpdateCallback(callback: (collection: Playlist) => void) {
         if (this.updateCallbacks.indexOf(callback) >= 0) return;
         this.updateCallbacks.push(callback);
     }
 
-    public unregisterUpdateCallback(callback: (collection: Collection) => void) {
+    public unregisterUpdateCallback(callback: (collection: Playlist) => void) {
         const index = this.updateCallbacks.indexOf(callback);
         if (index >= 0) this.updateCallbacks.splice(index, 1);
     }

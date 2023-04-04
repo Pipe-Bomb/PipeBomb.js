@@ -1,12 +1,10 @@
 import Context from "../Context.js";
-import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache.js";
-import User from "../User.js";
-import Collection from "./Collection.js";
-import Suggestions from "./Suggestions.js";
+import Playlist from "./Playlist.js";
+import TrackList from "./TrackList.js";
 
 interface CollectionWrapper {
-    collection: Collection | Suggestions,
+    collection: Playlist | TrackList,
     timeout: ReturnType<typeof setTimeout>
 }
 
@@ -20,11 +18,19 @@ export default class CollectionCache {
         this.trackCache = trackCache;
     }
 
-    public setCollection(collection: Collection | Suggestions) {
+    public setCollection(collection: Playlist | TrackList) {
         const existingCollection = this.getCollection(collection.collectionID);
-        if (existingCollection && existingCollection instanceof Collection && collection instanceof Collection) {
-            existingCollection.copyFromOtherCollection(collection);
-            return existingCollection;
+
+        if (existingCollection) {
+            if (existingCollection instanceof Playlist && collection instanceof Playlist) { // both playlists
+                existingCollection.copyFromOtherPlaylist(collection);
+                return existingCollection;
+            }
+
+            if (existingCollection instanceof TrackList && collection instanceof TrackList) { // both tracklists
+                existingCollection.copyFromOtherTrackList(collection);
+                return existingCollection;
+            }
         }
 
         this.collections.set(collection.collectionID, {
@@ -37,7 +43,7 @@ export default class CollectionCache {
         return collection;
     }
 
-    public getCollection(collectionID: string): Collection | Suggestions | null {
+    public getCollection(collectionID: string): Playlist | TrackList | null {
         const existingCollection = this.collections.get(collectionID);
         if (!existingCollection) return null;
         

@@ -1,5 +1,5 @@
 import CollectionCache from "../collection/CollectionCache";
-import Suggestions from "../collection/Suggestions.js";
+import Suggestions from "../collection/TrackList.js";
 import Context from "../Context";
 import TrackCache from "./TrackCache";
 
@@ -38,7 +38,7 @@ export default class Track {
     }
 
     public async getSuggestedTracks(collectionCache: CollectionCache, trackCache: TrackCache): Promise<Suggestions> {
-        const existing = collectionCache.getCollection(`${this.trackID}/suggestions`);
+        const existing = collectionCache.getCollection(`suggestions/${this.trackID}`);
         if (existing && existing instanceof Suggestions) return existing;
 
         const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/suggested`);
@@ -53,7 +53,7 @@ export default class Track {
             }
         }
         
-        const suggestions = new Suggestions(collectionCache, this, tracks);
+        const suggestions = new Suggestions(collectionCache, "suggestions/" + this.trackID, "Suggestions", tracks);
 
         return suggestions;
     }
