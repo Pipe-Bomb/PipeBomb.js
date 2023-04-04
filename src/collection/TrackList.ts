@@ -7,7 +7,6 @@ export default class TrackList {
     private trackList: Track[] | null;
 
     constructor(collectionCache: CollectionCache, collectionID: string, collectionName: string, trackList: Track[] | null) {
-        console.log("created tracklist");
         this.collectionID = collectionID;
         this.collectionName = collectionName;
         this.trackList = trackList;
