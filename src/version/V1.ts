@@ -93,7 +93,7 @@ export default class V1 extends APIVersion {
         if (Array.isArray(response.response)) {
             for (let data of response.response) {
                 if (typeof data.slug == "string" && typeof data.name == "string") {
-                    out.push(new TrackList(this.collectionCache, `charts/${data.slug}`, data.name, null));
+                    out.push(new TrackList(this.collectionCache, `charts/${data.slug}`, data.name, null, data.service));
                 }
             }
         }
