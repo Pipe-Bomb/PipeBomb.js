@@ -111,6 +111,7 @@ export default class V1 extends APIVersion {
             const criteria = [
                 typeof json?.slug == "string",
                 typeof json?.name == "string",
+                typeof json?.service == "string",
                 !(json?.trackList) || (() => {
                     if (!Array.isArray(json.trackList)) return false;
                     for (let track of json.trackList) {
@@ -136,7 +137,7 @@ export default class V1 extends APIVersion {
                 }
             }
 
-            const chart = new TrackList(this.collectionCache, "charts/" + json.slug, json.name, trackList);
+            const chart = new TrackList(this.collectionCache, "charts/" + json.slug, json.name, trackList, json.service);
             const output = this.collectionCache.setCollection(chart);
             if (output instanceof TrackList) return output;
             return chart;

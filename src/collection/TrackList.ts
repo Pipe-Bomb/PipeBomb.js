@@ -4,12 +4,14 @@ import CollectionCache from "./CollectionCache";
 export default class TrackList {
     public readonly collectionID: string;
     public readonly collectionName: string;
+    public readonly service?: string;
     private trackList: Track[] | null;
 
-    constructor(collectionCache: CollectionCache, collectionID: string, collectionName: string, trackList: Track[] | null) {
+    constructor(collectionCache: CollectionCache, collectionID: string, collectionName: string, trackList: Track[] | null, service?: string) {
         this.collectionID = collectionID;
         this.collectionName = collectionName;
         this.trackList = trackList;
+        if (service) this.service = service;
         collectionCache.setCollection(this);
     }
 
