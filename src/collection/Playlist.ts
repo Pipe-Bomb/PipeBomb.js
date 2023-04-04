@@ -159,7 +159,7 @@ export default class Playlist {
 
     public static convertJsonToPlaylist(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any): Playlist {
         const criteria = [
-            typeof json?.collectionID == "string",
+            ["string", "number"].includes(typeof json?.collectionID),
             typeof json?.name == "string",
             json?.owner == null || (typeof json?.owner?.userID == "string" && typeof json?.owner?.username == "string"),
             !(json?.trackList) || (() => {
