@@ -7,9 +7,9 @@
   "typings": "dist/index.d.ts",
   "scripts": {
     "test": "node --trace-warnings dist/index.js",
-    "watch": "tsc -w",
-    "build": "tsc",
-    "check": "tsc --noEmit",
+    "watch": "npx tsc -w",
+    "build": "npx tsc",
+    "check": "npx tsc --noEmit",
     "postinstall": "npm run build"
   },
   "keywords": [],
