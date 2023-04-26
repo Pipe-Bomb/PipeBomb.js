@@ -39,15 +39,19 @@ export default class V1 extends APIVersion {
             try {
                 const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, collectionJson);
                 collections.push(collection);
-            } catch (e) {
-                
-            }
-            
+            } catch (e) {}
         }
         return collections;
     }
 
-    public async getPlaylist(collectionID: string): Promise<Playlist> {
+    public async getPlaylist(collectionID: string, outOfDateThreshold?: number): Promise<Playlist> {
+        const cachedPlaylist = this.collectionCache.getCollection(collectionID);
+        if (cachedPlaylist instanceof Playlist) {
+            try {
+                await cachedPlaylist.checkForUpdates(outOfDateThreshold ?? this.context.playlistUpdateFrequency);
+            } catch {}
+            return cachedPlaylist;
+        }
         const response = await this.makeRequest("get", `playlists/${collectionID}`);
         if (response.statusCode != 200) throw response;
 

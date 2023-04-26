@@ -9,14 +9,9 @@ interface CollectionWrapper {
 }
 
 export default class CollectionCache {
-    private readonly context: Context;
-    private readonly trackCache: TrackCache;
     private collections: Map<string, CollectionWrapper> = new Map();
 
-    public constructor(context: Context, trackCache: TrackCache) {
-        this.context = context;
-        this.trackCache = trackCache;
-    }
+    public constructor(private readonly context: Context, private readonly trackCache: TrackCache, private readonly cacheTime: number) {}
 
     public setCollection(collection: Playlist | TrackList) {
         const existingCollection = this.getCollection(collection.collectionID);
@@ -36,7 +31,7 @@ export default class CollectionCache {
         this.collections.set(collection.collectionID, {
             timeout: setTimeout(() => {
                 this.deleteCollection(collection.collectionID);
-            }, 600_000),
+            }, this.cacheTime * 1000),
             collection
         });
 
@@ -50,7 +45,7 @@ export default class CollectionCache {
         clearTimeout(existingCollection.timeout);
         existingCollection.timeout = setTimeout(() => {
             this.deleteCollection(collectionID);
-        }, 600_000);
+        }, this.cacheTime * 1000);
 
         return existingCollection.collection;
     }

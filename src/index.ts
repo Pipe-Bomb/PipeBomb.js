@@ -4,7 +4,15 @@ import Context from "./Context.js";
 import TrackCache from "./music/TrackCache.js";
 import HostInfo from "./HostInfo.js";
 import V1 from "./version/V1.js";
+import Playlist from "./collection/Playlist.js";
 
+
+export interface PipeBombOptions {
+    token?: string,
+    CollectionCacheTime?: number,
+    PlaylistUpdateFrequency?: number,
+    trackCacheTime?: number
+}
 
 export default class PipeBomb {
     private readonly context: Context;
@@ -13,11 +21,11 @@ export default class PipeBomb {
 
     public readonly v1: V1;
 
-    constructor(serverURL: string, token?: string) {
-        this.context = new Context(serverURL, token || null);
+    constructor(serverURL: string, options?: PipeBombOptions) {
+        this.context = new Context(serverURL, options?.token || null, options?.PlaylistUpdateFrequency ?? 10);
 
-        this.trackCache = new TrackCache(this.context);
-        this.collectionCache = new CollectionCache(this.context, this.trackCache);
+        this.trackCache = new TrackCache(this.context, options?.trackCacheTime ?? 60);
+        this.collectionCache = new CollectionCache(this.context, this.trackCache, options?.CollectionCacheTime ?? 600);
 
         this.v1 = new V1(this.context, this.trackCache, this.collectionCache);
     }

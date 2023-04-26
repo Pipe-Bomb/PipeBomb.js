@@ -16,6 +16,8 @@ export default class Playlist {
     private collectionCache: CollectionCache;
     private suggestedTracks: Track[] = [];
     private suggestedTracksUpdated: number = null;
+    private checkTimer: ReturnType<typeof setTimeout> = null;
+    private lastChecked: number = Date.now();
 
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: string, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
@@ -211,6 +213,7 @@ export default class Playlist {
         for (let callback of this.updateCallbacks) {
             callback(this);
         }
+        if (this.updateCallbacks.length) this.setLoop();
     }
 
     public isCollectionDeleted() {
@@ -220,10 +223,44 @@ export default class Playlist {
     public registerUpdateCallback(callback: (collection: Playlist) => void) {
         if (this.updateCallbacks.indexOf(callback) >= 0) return;
         this.updateCallbacks.push(callback);
+
+        if (this.updateCallbacks.length == 1) this.setLoop();
     }
 
     public unregisterUpdateCallback(callback: (collection: Playlist) => void) {
         const index = this.updateCallbacks.indexOf(callback);
         if (index >= 0) this.updateCallbacks.splice(index, 1);
+
+        if (!this.updateCallbacks.length && this.checkTimer) {
+            clearTimeout(this.checkTimer);
+            this.checkTimer = null;
+        }
+    }
+
+    private setLoop() {
+        if (this.checkTimer) clearTimeout(this.checkTimer);
+        this.checkTimer = setTimeout(async () => {
+            try {
+                await this.checkForUpdates(0);
+            } catch (e) {}
+        }, this.context.playlistUpdateFrequency * 1000);
+    }
+
+    public async checkForUpdates(outOfDateThreshold: number) {
+        if (outOfDateThreshold && Date.now() - outOfDateThreshold * 1000 < this.lastChecked) return;
+
+        if (this.checkTimer) clearTimeout(this.checkTimer);
+
+        try {
+            const response = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}`);
+            this.lastChecked = Date.now();
+            if (response.statusCode != 200) throw response;
+            const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+            this.copyFromOtherPlaylist(collection);
+            if (this.updateCallbacks.length) this.setLoop();
+        } catch (e) {
+            if (this.updateCallbacks.length) this.setLoop();
+            throw e;
+        }
     }
 }

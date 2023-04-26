@@ -7,12 +7,9 @@ interface TrackContainer {
 };
 
 export default class TrackCache {
-    private readonly context: Context;
     private cache: Map<string, TrackContainer> = new Map();
 
-    public constructor(context: Context) {
-        this.context = context;
-    }
+    public constructor(private readonly context: Context, private readonly cacheTime: number) {}
 
     updateTrack(track: Track): this {
         let existingTrack = this.cache.get(track.trackID);
@@ -64,6 +61,6 @@ export default class TrackCache {
         clearTimeout(trackContainer.timer);
         trackContainer.timer = setTimeout(() => {
             this.cache.delete(trackContainer.track.trackID);
-        }, 60 * 1000);
+        }, this.cacheTime * 1000);
     }
 }

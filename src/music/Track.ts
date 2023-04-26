@@ -9,12 +9,19 @@ export interface TrackMeta {
     readonly image?: string
 }
 
+export interface Lyric {
+    time: number,
+    words: string
+}
+
 export default class Track {
     private readonly context: Context;
 
     public readonly type: "track";
     public readonly trackID: string;
     private metadata: TrackMeta;
+    private lyrics: Lyric[] = null;
+
 
     constructor(context: Context, trackID: string, metadata?: TrackMeta) {
         this.context = context;
@@ -56,6 +63,43 @@ export default class Track {
         const suggestions = new Suggestions(collectionCache, "suggestions/" + this.trackID, "Suggestions", tracks);
 
         return suggestions;
+    }
+
+    public getAudioUrl() {
+        return `${this.context.serverURL}/v1/tracks/${this.trackID}/audio`;
+    }
+
+    public getThumbnailUrl() {
+        return `${this.context.serverURL}/v1/tracks/${this.trackID}/thumbnail`;
+    }
+
+    public async getLyrics() {
+        if (this.lyrics) {
+            if (!this.lyrics.length) return null;
+            return Array.from(this.lyrics);
+        }
+        try {
+            console.log(`v1/tracks/${this.trackID}/lyrics`);
+            const response = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/lyrics`);
+            if (response.statusCode !== 200) throw "bad status code";
+            if (!Array.isArray(response.response)) throw "not array";
+
+            let lyrics: Lyric[] = [];
+            for (let line of response.response) {
+                if (!line) continue;
+                if (typeof line.time == "number" && typeof line.words == "string") {
+                    lyrics.push({
+                        time: line.time,
+                        words: line.words
+                    });
+                }
+            }
+            this.lyrics = lyrics;
+            return Array.from(lyrics);
+        } catch {
+            this.lyrics = [];
+            return null;
+        }
     }
 
 
