@@ -139,6 +139,7 @@ export default class Playlist {
             changed = true;
             this.name = collection.name;
         }
+
         if (collection.trackList !== null) {
             if (this.trackList !== null && this.trackList.length == collection.trackList.length) {
                 for (let i = 0; i < this.trackList.length; i++) {
@@ -150,9 +151,8 @@ export default class Playlist {
             } else {
                 changed = true;
             }
+            this.trackList = collection.trackList;
         }
-        
-        this.trackList = collection.trackList;
 
         if (changed) {
             this.pushToCallbacks();
