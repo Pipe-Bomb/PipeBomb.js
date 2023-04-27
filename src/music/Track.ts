@@ -10,8 +10,13 @@ export interface TrackMeta {
 }
 
 export interface Lyric {
-    time: number,
+    time?: number,
     words: string
+}
+
+export interface Lyrics {
+    synced: boolean,
+    lyrics: Lyric[]
 }
 
 export default class Track {
@@ -20,7 +25,7 @@ export default class Track {
     public readonly type: "track";
     public readonly trackID: string;
     private metadata: TrackMeta;
-    private lyrics: Lyric[] = null;
+    private lyrics: Lyrics = null;
 
 
     constructor(context: Context, trackID: string, metadata?: TrackMeta) {
@@ -75,29 +80,48 @@ export default class Track {
 
     public async getLyrics() {
         if (this.lyrics) {
-            if (!this.lyrics.length) return null;
-            return Array.from(this.lyrics);
+            if (!this.lyrics.lyrics.length) return null;
+            return this.lyrics;
         }
         try {
-            console.log(`v1/tracks/${this.trackID}/lyrics`);
             const response = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/lyrics`);
             if (response.statusCode !== 200) throw "bad status code";
-            if (!Array.isArray(response.response)) throw "not array";
+            if (typeof response.response?.synced != "boolean") throw "not boolean";
+            if (!Array.isArray(response.response?.lyrics)) throw "not array";
 
-            let lyrics: Lyric[] = [];
-            for (let line of response.response) {
-                if (!line) continue;
-                if (typeof line.time == "number" && typeof line.words == "string") {
-                    lyrics.push({
-                        time: line.time,
-                        words: line.words
-                    });
+            const lyrics: Lyrics = {
+                synced: response.response.synced,
+                lyrics: []
+            };
+
+            if (response.response.synced) {
+                for (let line of response.response.lyrics) {
+                    if (!line) continue;
+                    if (typeof line.time == "number" && typeof line.words == "string") {
+                        lyrics.lyrics.push({
+                            time: line.time,
+                            words: line.words
+                        });
+                    }
+                }
+            } else {
+                for (let line of response.response.lyrics) {
+                    if (!line) continue;
+                    if (typeof line.words == "string") {
+                        lyrics.lyrics.push({
+                            words: line.words
+                        });
+                    }
                 }
             }
+            
             this.lyrics = lyrics;
-            return Array.from(lyrics);
+            return lyrics;
         } catch {
-            this.lyrics = [];
+            this.lyrics = {
+                synced: false,
+                lyrics: []
+            };
             return null;
         }
     }
