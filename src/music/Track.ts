@@ -16,6 +16,7 @@ export interface Lyric {
 
 export interface Lyrics {
     synced: boolean,
+    provider: string,
     lyrics: Lyric[]
 }
 
@@ -91,6 +92,7 @@ export default class Track {
 
             const lyrics: Lyrics = {
                 synced: response.response.synced,
+                provider: response.response.provider,
                 lyrics: []
             };
 
@@ -120,6 +122,7 @@ export default class Track {
         } catch {
             this.lyrics = {
                 synced: false,
+                provider: "none",
                 lyrics: []
             };
             return null;
