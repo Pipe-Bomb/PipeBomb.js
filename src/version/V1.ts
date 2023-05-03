@@ -6,6 +6,7 @@ import TrackCache from "../music/TrackCache.js";
 import ServiceInfo from "../ServiceInfo.js";
 import APIVersion from "./APIVersion.js";
 import TrackList from "../collection/TrackList.js";
+import User from "../User.js";
 
 export default class V1 extends APIVersion {
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache) {
@@ -150,5 +151,25 @@ export default class V1 extends APIVersion {
         }
 
         return null;
+    }
+
+    public async getUser(userID: string) {
+        const data = await this.makeRequest("get", `user/${userID}`);
+        if (data.statusCode != 200) throw data;
+
+        const user: User = data.response.user;
+        const playlists: Playlist[] = [];
+
+        if (Array.isArray(data.response.playlists)) {
+            for (let rawPlaylist of data.response.playlists) {
+                const playlist = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, rawPlaylist);
+                playlists.push(playlist);
+            }
+        }
+
+        return {
+            user,
+            playlists
+        }
     }
 }
