@@ -57,10 +57,12 @@ export default class ExternalCollection extends TrackList {
     }
 
     public async loadNextPage() {
-        if (this.loading || this.gotFullTracklist) return;
+        if (this.loading || (this.gotFullTracklist && this.trackList)) return false;
         try {
+            this.gotFullTracklist = false;
             this.loading = false;
-            const data = await this.context.makeRequest("get", `v1/externalplaylists/${this.collectionID}/page/${this.loadedPages}`);
+            this.pushToCallbacks();
+            const data = await this.context.makeRequest("get", `v1/externalplaylists/${this.collectionID}/page/${this.loadedPages++}`);
             if (data.statusCode != 200) throw "end";
             if (!this.trackList) {
                 this.trackList = [];
@@ -76,11 +78,15 @@ export default class ExternalCollection extends TrackList {
             if (this.trackList.length >= this.size) {
                 this.gotFullTracklist = true;
             }
-        } catch (e) {
-            this.gotFullTracklist = true;
-        } finally {
-            this.loading = true;
+
+            this.loading = false;
             this.pushToCallbacks();
+            return true;
+        } catch {
+            this.gotFullTracklist = true;
+            this.loading = false;
+            this.pushToCallbacks();
+            return false;
         }
     }
 
@@ -94,6 +100,10 @@ export default class ExternalCollection extends TrackList {
 
     public hasFullTracklist() {
         return this.gotFullTracklist;
+    }
+
+    public getTrackListLength() {
+        return this.size;
     }
 
     private pushToCallbacks() {
