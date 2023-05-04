@@ -7,25 +7,32 @@ import ServiceInfo from "../ServiceInfo.js";
 import APIVersion from "./APIVersion.js";
 import TrackList from "../collection/TrackList.js";
 import User from "../User.js";
+import ExternalPlaylist from "../collection/ExternalCollection.js";
+import ExternalCollection from "../collection/ExternalCollection.js";
 
 export default class V1 extends APIVersion {
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache) {
         super("v1", context, trackCache, collectionCache);
     }
 
-    public async search(service: string, query: string): Promise<Track[]> { // search for tracks
+    public async search(service: string, query: string): Promise<(Track | ExternalPlaylist)[]> { // search for tracks
         const response = await this.makeRequest("post", "search", {
             service,
             query
         });
         if (response.statusCode != 200) throw response;
-        const tracks: Track[] = [];
+        const tracks: (Track | ExternalPlaylist)[] = [];
 
         for (let trackInfo of response.response) {
-            const track = Track.convertJsonToTrack(this.context, trackInfo);
-            if (track) {
-                this.trackCache.updateTrack(track);
-                tracks.push(track);
+            if (trackInfo.type == "track") {
+                const track = Track.convertJsonToTrack(this.context, trackInfo);
+                if (track) {
+                    this.trackCache.updateTrack(track);
+                    tracks.push(track);
+                }
+            } else if (trackInfo.type == "playlist" || trackInfo.type == "album") {
+                const collection = ExternalCollection.convertJsonToExternalCollection(this.context, this.trackCache, this.collectionCache, trackInfo);
+                tracks.push(collection);
             }
         }
         return tracks;
@@ -68,6 +75,13 @@ export default class V1 extends APIVersion {
         });
         if (response.statusCode != 201) throw response;
         const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+        return collection;
+    }
+
+    public async getExternalPlaylist(playlistID: string) {
+        const data = await this.makeRequest("get", `externalplaylists/${playlistID}`);
+        if (data.statusCode != 200) throw data;
+        const collection = ExternalCollection.convertJsonToExternalCollection(this.context, this.trackCache, this.collectionCache, data.response);
         return collection;
     }
 

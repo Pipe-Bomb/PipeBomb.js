@@ -3,9 +3,9 @@ import CollectionCache from "./CollectionCache";
 
 export default class TrackList {
     public readonly collectionID: string;
-    public readonly collectionName: string;
+    protected collectionName: string;
     public readonly service?: string;
-    private trackList: Track[] | null;
+    protected trackList: Track[] | null;
 
     constructor(collectionCache: CollectionCache, collectionID: string, collectionName: string, trackList: Track[] | null, service?: string) {
         this.collectionID = collectionID;
@@ -37,5 +37,9 @@ export default class TrackList {
         }
 
         this.trackList = trackList.trackList;
+    }
+
+    public getName() {
+        return this.collectionName;
     }
 }
