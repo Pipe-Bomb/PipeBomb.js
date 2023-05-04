@@ -36,7 +36,10 @@ export default class TrackList {
             }
         }
 
-        this.trackList = trackList.trackList;
+        if (trackList.trackList) {
+            this.trackList = trackList.trackList;
+        }
+        
     }
 
     public getName() {

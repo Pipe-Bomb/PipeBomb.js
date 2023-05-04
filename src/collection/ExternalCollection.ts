@@ -19,48 +19,25 @@ export default class ExternalCollection extends TrackList {
 
         const existingCollection = collectionCache.getCollection(collection.collectionID);
         if (existingCollection instanceof ExternalCollection) {
-            existingCollection.copyFromOtherCollection(collection);
+            existingCollection.copyFromOtherTrackList(collection);
             return existingCollection;
         }
 
         const output = collectionCache.setCollection(collection);
-        if (output instanceof ExternalCollection) return output;
+        if (output instanceof ExternalCollection) {
+            return output;
+        }
         return collection;
-    }
-
-    public copyFromOtherCollection(collection: ExternalCollection) {
-        if (this.collectionID != collection.collectionID) return;
-        let changed = false;
-        
-        if (this.collectionName != collection.collectionName) {
-            this.collectionName = collection.collectionName;
-            changed = true;
-        }
-
-        if (collection.trackList !== null) {
-            if (this.trackList !== null && this.trackList.length == collection.trackList.length) {
-                for (let i = 0; i < this.trackList.length; i++) {
-                    if (this.trackList[i].trackID != collection.trackList[i].trackID) {
-                        changed = true;
-                        break;
-                    }
-                }
-            } else {
-                changed = true;
-            }
-            this.trackList = collection.trackList;
-        }
-
-        if (changed) {
-            this.pushToCallbacks();
-        }
     }
 
     public async loadNextPage() {
         if (this.loading || (this.gotFullTracklist && this.trackList)) return false;
         try {
             this.gotFullTracklist = false;
-            this.loading = false;
+            this.loading = true;
+            if (!this.trackList) {
+                this.loadedPages = 0;
+            }
             this.pushToCallbacks();
             const data = await this.context.makeRequest("get", `v1/externalplaylists/${this.collectionID}/page/${this.loadedPages++}`);
             if (data.statusCode != 200) throw "end";

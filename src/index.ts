@@ -4,8 +4,6 @@ import Context from "./Context.js";
 import TrackCache from "./music/TrackCache.js";
 import HostInfo from "./HostInfo.js";
 import V1 from "./version/V1.js";
-import Playlist from "./collection/Playlist.js";
-import ExternalCollection from "./collection/ExternalCollection.js";
 
 
 export interface PipeBombOptions {
