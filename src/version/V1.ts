@@ -10,32 +10,64 @@ import User from "../User.js";
 import ExternalPlaylist from "../collection/ExternalCollection.js";
 import ExternalCollection from "../collection/ExternalCollection.js";
 
+export interface FoundObject {
+    responseType: "found object"
+    objectType: "playlist" | "track",
+    id: string
+}
+
+export interface SearchResults {
+    responseType: "search results";
+    results: (Track | ExternalPlaylist)[]
+}
+
 export default class V1 extends APIVersion {
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache) {
         super("v1", context, trackCache, collectionCache);
     }
 
-    public async search(service: string, query: string): Promise<(Track | ExternalPlaylist)[]> { // search for tracks
+    public async search(service: string, query: string): Promise<FoundObject | SearchResults> { // search for tracks
         const response = await this.makeRequest("post", "search", {
             service,
             query
         });
         if (response.statusCode != 200) throw response;
-        const tracks: (Track | ExternalPlaylist)[] = [];
 
-        for (let trackInfo of response.response) {
-            if (trackInfo.type == "track") {
-                const track = Track.convertJsonToTrack(this.context, trackInfo);
-                if (track) {
-                    this.trackCache.updateTrack(track);
-                    tracks.push(track);
-                }
-            } else if (trackInfo.type == "playlist" || trackInfo.type == "album") {
-                const collection = ExternalCollection.convertJsonToExternalCollection(this.context, this.trackCache, this.collectionCache, trackInfo);
-                tracks.push(collection);
+        const responseType: string = response.response.type;
+
+        if (responseType == "object found") {
+            const foundObject: FoundObject = {
+                responseType: "found object",
+                objectType: response.response.object.type,
+                id: response.response.object.id
             }
+            return foundObject;
         }
-        return tracks;
+
+        if (responseType == "search results") {
+            const tracks: (Track | ExternalPlaylist)[] = [];
+
+            for (let trackInfo of response.response.items) {
+                if (trackInfo.type == "track") {
+                    const track = Track.convertJsonToTrack(this.context, trackInfo);
+                    if (track) {
+                        this.trackCache.updateTrack(track);
+                        tracks.push(track);
+                    }
+                } else if (trackInfo.type == "playlist" || trackInfo.type == "album") {
+                    const collection = ExternalCollection.convertJsonToExternalCollection(this.context, this.trackCache, this.collectionCache, trackInfo);
+                    tracks.push(collection);
+                }
+            }
+
+            const results: SearchResults = {
+                responseType: "search results",
+                results: tracks
+            }
+            return results;
+        }
+
+        throw response;
     }
 
     public async getPlaylists(): Promise<Playlist[]> { // get all playlists owned by you
