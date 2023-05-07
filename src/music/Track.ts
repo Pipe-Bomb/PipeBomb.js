@@ -39,7 +39,7 @@ export default class Track {
         return this.metadata == null;
     }
 
-    public async getMetadata() {
+    public async loadMetadata() {
         if (!this.metadata) {
             const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}`);
             if (info.statusCode != 200) return null;
@@ -48,6 +48,10 @@ export default class Track {
             this.metadata = tempTrack.metadata;
         }
         return this.metadata;
+    }
+
+    public getMetadata() {
+        return this.metadata || null;
     }
 
     public async getSuggestedTracks(collectionCache: CollectionCache, trackCache: TrackCache): Promise<Suggestions> {
