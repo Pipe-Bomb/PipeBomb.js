@@ -9,6 +9,8 @@ import TrackList from "../collection/TrackList.js";
 import User from "../User.js";
 import ExternalPlaylist from "../collection/ExternalCollection.js";
 import ExternalCollection from "../collection/ExternalCollection.js";
+import Axios from "axios";
+import ServerInfo from "../ServerInfo.js";
 
 export interface FoundObject {
     responseType: "found object"
@@ -216,6 +218,29 @@ export default class V1 extends APIVersion {
         return {
             user,
             playlists
+        }
+    }
+
+    public async getRegistryServers(url: string) {
+        try {
+            const { data } = await Axios.get(url + "/servers/index");
+            if (data?.statusCode != 200 || !Array.isArray(data?.data)) throw "invalid response";
+
+            const servers: ServerInfo[] = [];
+
+            for (let itemData of data.data) {
+                if (typeof itemData?.address != "string") continue;
+                if (typeof itemData?.name != "string") continue;
+                if (typeof itemData?.https != "boolean") continue;
+                if (typeof itemData?.uptime != "number") continue;
+
+                const server = new ServerInfo(itemData.address, itemData.name, itemData.https, itemData.uptime);
+                servers.push(server);
+            }
+
+            return servers;
+        } catch {
+            throw `Failed to retrieve servers from registry '${url}'`;
         }
     }
 }
