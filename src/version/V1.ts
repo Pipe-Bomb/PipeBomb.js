@@ -11,6 +11,7 @@ import ExternalPlaylist from "../collection/ExternalCollection.js";
 import ExternalCollection from "../collection/ExternalCollection.js";
 import Axios from "axios";
 import ServerInfo from "../ServerInfo.js";
+import PipeBomb from "../index.js";
 
 export interface FoundObject {
     responseType: "found object"
@@ -79,7 +80,7 @@ export default class V1 extends APIVersion {
         const collections: Playlist[] = [];
         for (let collectionJson of response.response) {
             try {
-                const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, collectionJson);
+                const collection = Playlist.convertJsonToPlaylist(this.context, collectionJson);
                 collections.push(collection);
             } catch (e) {}
         }
@@ -87,6 +88,14 @@ export default class V1 extends APIVersion {
     }
 
     public async getPlaylist(collectionID: string, outOfDateThreshold?: number): Promise<Playlist> {
+        const instance = await this.context.getInstanceForURI(collectionID);
+        collectionID = instance.id;
+        if (!instance.ownInstance) {
+            if (!instance.instance) throw `Server is not online`;
+            return await instance.instance.v1.getPlaylist(collectionID, outOfDateThreshold);
+        }
+
+
         const cachedPlaylist = this.collectionCache.getCollection(collectionID);
         if (cachedPlaylist instanceof Playlist) {
             try {
@@ -97,7 +106,7 @@ export default class V1 extends APIVersion {
         const response = await this.makeRequest("get", `playlists/${collectionID}`);
         if (response.statusCode != 200) throw response;
 
-        const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+        const collection = Playlist.convertJsonToPlaylist(this.context, response.response);
         return collection;
     }
 
@@ -108,11 +117,19 @@ export default class V1 extends APIVersion {
             tracks: trackList.map(track => track.trackID)
         });
         if (response.statusCode != 201) throw response;
-        const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+        const collection = Playlist.convertJsonToPlaylist(this.context, response.response);
         return collection;
     }
 
     public async getExternalPlaylist(playlistID: string) {
+        const instance = await this.context.getInstanceForURI(playlistID);
+        playlistID = instance.id;
+        if (!instance.ownInstance) {
+            if (!instance.instance) throw `Server is not online`;
+            return await instance.instance.v1.getExternalPlaylist(playlistID);
+        }
+
+
         const data = await this.makeRequest("get", `externalplaylists/${playlistID}`);
         if (data.statusCode != 200) throw data;
         const collection = ExternalCollection.convertJsonToExternalCollection(this.context, this.trackCache, this.collectionCache, data.response);
@@ -155,6 +172,13 @@ export default class V1 extends APIVersion {
     }
 
     public async getChart(chartSlug: string): Promise<TrackList> {
+        const instance = await this.context.getInstanceForURI(chartSlug);
+        chartSlug = instance.id;
+        if (!instance.ownInstance) {
+            if (!instance.instance) throw `Server is not online`;
+            return await instance.instance.v1.getChart(chartSlug);
+        }
+
         const response = await this.makeRequest("get", `charts/${chartSlug}`);
         if (response.statusCode != 200) throw response;
 
@@ -210,7 +234,7 @@ export default class V1 extends APIVersion {
 
         if (Array.isArray(data.response.playlists)) {
             for (let rawPlaylist of data.response.playlists) {
-                const playlist = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, rawPlaylist);
+                const playlist = Playlist.convertJsonToPlaylist(this.context, rawPlaylist);
                 playlists.push(playlist);
             }
         }

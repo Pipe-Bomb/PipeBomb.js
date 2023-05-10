@@ -9,7 +9,10 @@ interface TrackContainer {
 export default class TrackCache {
     private cache: Map<string, TrackContainer> = new Map();
 
-    public constructor(private readonly context: Context, private readonly cacheTime: number) {}
+    public constructor(
+        private readonly context: Context,
+        private readonly cacheTime: number
+    ) {}
 
     updateTrack(track: Track): this {
         let existingTrack = this.cache.get(track.trackID);
@@ -30,6 +33,13 @@ export default class TrackCache {
     }
 
     public async getTrack(trackID: string): Promise<Track> {
+        const instance = await this.context.getInstanceForURI(trackID);
+        trackID = instance.id;
+        if (!instance.ownInstance) {
+            if (!instance.instance) throw `Server is not online`;
+            return await instance.instance.trackCache.getTrack(trackID);
+        }
+
         let cachedTrack = this.cache.get(trackID);
         if (cachedTrack) {
             this.resetTimer(cachedTrack);

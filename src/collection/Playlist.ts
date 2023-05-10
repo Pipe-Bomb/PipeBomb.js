@@ -1,4 +1,5 @@
 import Context from "../Context.js";
+import PipeBomb from "../index.js";
 import Track from "../music/Track.js";
 import TrackCache from "../music/TrackCache.js";
 import User from "../User.js";
@@ -7,6 +8,7 @@ import CollectionCache from "./CollectionCache.js";
 export default class Playlist {
     private readonly context: Context;
     private readonly trackCache: TrackCache;
+    public readonly rawCollectionID: string;
     public readonly collectionID: string;
     private name: string;
     public readonly owner: User;
@@ -19,36 +21,38 @@ export default class Playlist {
     private checkTimer: ReturnType<typeof setTimeout> = null;
     private lastChecked: number = Date.now();
 
-    constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, collectionID: string, name: string, owner: User, trackList?: Track[]) {
+    constructor(context: Context, collectionID: string, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
-        this.trackCache = trackCache;
-        this.collectionCache = collectionCache;
-        this.collectionID = collectionID;
+        this.trackCache = context.instance.trackCache;
+        this.collectionCache = context.instance.collectionCache;
+        this.rawCollectionID = collectionID;
+        this.collectionID = context.prefixAddress(collectionID);
         this.name = name;
         this.owner = owner;
         this.trackList = trackList;
     }
 
-    public async getTrackList(trackCache: TrackCache): Promise<Track[]> {
+    public async getTrackList(): Promise<Track[]> {
         this.checkDeletion();
         if (this.trackList == null) {
-            const info = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}`);
+            const info = await this.context.makeRequest("get", `v1/playlists/${this.rawCollectionID}`);
             if (info.statusCode != 200) return null;
-            const newCollection = Playlist.convertJsonToPlaylist(this.context, trackCache, this.collectionCache, info.response);
+            const newCollection = Playlist.convertJsonToPlaylist(this.context, info.response);
             if (!newCollection) return null;
             this.trackList = newCollection.trackList;
         }
         return Array.from(this.trackList);
     }
 
-    public async getSuggestedTracks(trackCache: TrackCache): Promise<Track[]> {
+    public async getSuggestedTracks(): Promise<Track[]> {
         this.checkDeletion();
+        const trackCache = this.context.instance.trackCache;
         if (this.suggestedTracksUpdated && this.suggestedTracksUpdated < Date.now() / 1000 - 600) {
             return Array.from(this.suggestedTracks);
         }
         
         try {
-            const suggestions = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}/suggested`);
+            const suggestions = await this.context.makeRequest("get", `v1/playlists/${this.rawCollectionID}/suggested`);
             if (suggestions.statusCode != 200 || !Array.isArray(suggestions.response)) throw "invalid response";
 
             const out: Track[] = [];
@@ -74,7 +78,7 @@ export default class Playlist {
 
     public async addTracks(...tracks: Track[]): Promise<void> {
         this.checkDeletion();
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
             tracks: {
                 add: tracks.map(track => {
                     return track.trackID
@@ -82,14 +86,14 @@ export default class Playlist {
             }
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+        const newCollection = Playlist.convertJsonToPlaylist(this.context, response.response);
         if (!newCollection) return;
         this.copyFromOtherPlaylist(newCollection);
     }
 
     public async removeTracks(...tracks: Track[]): Promise<void> {
         this.checkDeletion();
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
             tracks: {
                 remove: tracks.map(track => {
                     return track.trackID
@@ -97,24 +101,24 @@ export default class Playlist {
             }
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+        const newCollection = Playlist.convertJsonToPlaylist(this.context, response.response);
         if (!newCollection) return;
         this.copyFromOtherPlaylist(newCollection);
     }
 
     public async setName(name: string): Promise<void> {
         this.checkDeletion();
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
             name
         });
         if (response.statusCode != 200) throw response;
-        const newCollection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+        const newCollection = Playlist.convertJsonToPlaylist(this.context, response.response);
         if (!newCollection) return;
         this.copyFromOtherPlaylist(newCollection);
     }
 
     public async deleteCollection(): Promise<void> {
-        const response = await this.context.makeRequest("delete", `v1/playlists/${this.collectionID}`);
+        const response = await this.context.makeRequest("delete", `v1/playlists/${this.rawCollectionID}`);
         if (response.statusCode != 204) throw response;
         this.isDeleted = true;
         this.trackList = [];
@@ -122,7 +126,7 @@ export default class Playlist {
     }
 
     public async renameCollection(name: string): Promise<void> {
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.collectionID}`, {
+        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
             name
         });
         if (response.statusCode != 200) throw response;
@@ -159,7 +163,9 @@ export default class Playlist {
         }
     }
 
-    public static convertJsonToPlaylist(context: Context, trackCache: TrackCache, collectionCache: CollectionCache, json: any): Playlist {
+    public static convertJsonToPlaylist(context: Context, json: any): Playlist {
+        const trackCache = context.instance.trackCache;
+        const collectionCache = context.instance.collectionCache;
         const criteria = [
             ["string", "number"].includes(typeof json?.collectionID),
             typeof json?.name == "string",
@@ -177,7 +183,7 @@ export default class Playlist {
         }
 
         let owner: User = json?.owner ? {
-            userID: json.owner.userID,
+            userID: context.prefixAddress(json.owner.userID),
             username: json.owner.username
         } : null;
 
@@ -193,7 +199,7 @@ export default class Playlist {
             }
         }
         
-        const collection = new Playlist(context, trackCache, collectionCache, json.collectionID, json.name, owner, trackList);
+        const collection = new Playlist(context, json.collectionID, json.name, owner, trackList);
         const existingCollection = collectionCache.getCollection(collection.collectionID);
         if (existingCollection instanceof Playlist) {
             existingCollection.copyFromOtherPlaylist(collection);
@@ -252,10 +258,10 @@ export default class Playlist {
         if (this.checkTimer) clearTimeout(this.checkTimer);
 
         try {
-            const response = await this.context.makeRequest("get", `v1/playlists/${this.collectionID}`);
+            const response = await this.context.makeRequest("get", `v1/playlists/${this.rawCollectionID}`);
             this.lastChecked = Date.now();
             if (response.statusCode != 200) throw response;
-            const collection = Playlist.convertJsonToPlaylist(this.context, this.trackCache, this.collectionCache, response.response);
+            const collection = Playlist.convertJsonToPlaylist(this.context, response.response);
             this.copyFromOtherPlaylist(collection);
             if (this.updateCallbacks.length) this.setLoop();
         } catch (e) {

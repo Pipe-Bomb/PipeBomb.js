@@ -1,7 +1,5 @@
-import CollectionCache from "../collection/CollectionCache";
 import Suggestions from "../collection/TrackList.js";
 import Context from "../Context";
-import TrackCache from "./TrackCache";
 
 export interface TrackMeta {
     readonly artists: string[],
@@ -25,13 +23,15 @@ export default class Track {
 
     public readonly type: "track";
     public readonly trackID: string;
+    public readonly rawTrackID: string;
     private metadata: TrackMeta;
     private lyrics: Lyrics = null;
 
 
     constructor(context: Context, trackID: string, metadata?: TrackMeta) {
         this.context = context;
-        this.trackID = trackID;
+        this.rawTrackID = trackID;
+        this.trackID = context.prefixAddress(trackID);
         this.metadata = metadata || null;
     }
 
@@ -41,7 +41,7 @@ export default class Track {
 
     public async loadMetadata() {
         if (!this.metadata) {
-            const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}`);
+            const info = await this.context.makeRequest("get", `v1/tracks/${this.rawTrackID}`);
             if (info.statusCode != 200) return null;
             const tempTrack = Track.convertJsonToTrack(this.context, info.response);
             if (!tempTrack) return null;
@@ -54,8 +54,10 @@ export default class Track {
         return this.metadata || null;
     }
 
-    public async getSuggestedTracks(collectionCache: CollectionCache, trackCache: TrackCache): Promise<Suggestions> {
-        const existing = collectionCache.getCollection(`suggestions/${this.trackID}`);
+    public async getSuggestedTracks(): Promise<Suggestions> {
+        const collectionCache = this.context.instance.collectionCache;
+        const trackCache = this.context.instance.trackCache;
+        const existing = collectionCache.getCollection(`suggestions/${this.rawTrackID}`);
         if (existing && existing instanceof Suggestions) return existing;
 
         const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/suggested`);
@@ -70,17 +72,17 @@ export default class Track {
             }
         }
         
-        const suggestions = new Suggestions(collectionCache, "suggestions/" + this.trackID, "Suggestions", tracks);
+        const suggestions = new Suggestions(collectionCache, "suggestions/" + this.rawTrackID, "Suggestions", tracks);
 
         return suggestions;
     }
 
     public getAudioUrl() {
-        return `${this.context.serverURL}/v1/tracks/${this.trackID}/audio`;
+        return `${this.context.serverURL}/v1/tracks/${this.rawTrackID}/audio`;
     }
 
     public getThumbnailUrl() {
-        return `${this.context.serverURL}/v1/tracks/${this.trackID}/thumbnail`;
+        return `${this.context.serverURL}/v1/tracks/${this.rawTrackID}/thumbnail`;
     }
 
     public async getLyrics() {
@@ -89,7 +91,7 @@ export default class Track {
             return this.lyrics;
         }
         try {
-            const response = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/lyrics`);
+            const response = await this.context.makeRequest("get", `v1/tracks/${this.rawTrackID}/lyrics`);
             if (response.statusCode !== 200) throw "bad status code";
             if (typeof response.response?.synced != "boolean") throw "not boolean";
             if (!Array.isArray(response.response?.lyrics)) throw "not array";

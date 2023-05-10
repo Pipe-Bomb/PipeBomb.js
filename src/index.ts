@@ -9,19 +9,20 @@ import V1 from "./version/V1.js";
 export interface PipeBombOptions {
     token?: string,
     CollectionCacheTime?: number,
-    PlaylistUpdateFrequency?: number,
-    trackCacheTime?: number
+    playlistUpdateFrequency?: number,
+    trackCacheTime?: number,
+    includeAddressInIds?: boolean
 }
 
 export default class PipeBomb {
-    private readonly context: Context;
+    public readonly context: Context;
     public readonly collectionCache: CollectionCache;
     public readonly trackCache: TrackCache;
 
     public readonly v1: V1;
 
     constructor(serverURL: string, options?: PipeBombOptions) {
-        this.context = new Context(serverURL, options?.token || null, options?.PlaylistUpdateFrequency ?? 10);
+        this.context = new Context(serverURL, this, options);
 
         this.trackCache = new TrackCache(this.context, options?.trackCacheTime ?? 60);
         this.collectionCache = new CollectionCache(this.context, this.trackCache, options?.CollectionCacheTime ?? 600);
