@@ -7,7 +7,6 @@ import CollectionCache from "./CollectionCache.js";
 
 export default class Playlist {
     private readonly context: Context;
-    private readonly trackCache: TrackCache;
     public readonly rawCollectionID: string;
     public readonly collectionID: string;
     private name: string;
@@ -15,7 +14,6 @@ export default class Playlist {
     private trackList: Track[] = null;
     private isDeleted: boolean = false;
     private updateCallbacks: ((collection: Playlist) => void)[] = [];
-    private collectionCache: CollectionCache;
     private suggestedTracks: Track[] = [];
     private suggestedTracksUpdated: number = null;
     private checkTimer: ReturnType<typeof setTimeout> = null;
@@ -23,8 +21,6 @@ export default class Playlist {
 
     constructor(context: Context, collectionID: string, name: string, owner: User, trackList?: Track[]) {
         this.context = context;
-        this.trackCache = context.instance.trackCache;
-        this.collectionCache = context.instance.collectionCache;
         this.rawCollectionID = collectionID;
         this.collectionID = context.prefixAddress(collectionID);
         this.name = name;
@@ -184,7 +180,8 @@ export default class Playlist {
 
         let owner: User = json?.owner ? {
             userID: context.prefixAddress(json.owner.userID),
-            username: json.owner.username
+            username: json.owner.username,
+            rawID: json.owner.userID
         } : null;
 
         let trackList: Track[] = null;

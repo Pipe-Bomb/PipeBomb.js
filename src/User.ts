@@ -1,4 +1,5 @@
 export default interface User {
     userID: string,
-    username: string
+    username: string,
+    rawID: string
 }

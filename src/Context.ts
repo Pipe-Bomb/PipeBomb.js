@@ -6,8 +6,8 @@ export default class Context {
     private instances: Map<string, PipeBomb> = new Map();
 
     public readonly playlistUpdateFrequency: number;
-    public token: string;
-    public readonly serverAddress: string;
+    private token: string;
+    private serverAddress: string;
 
     public constructor(
         public serverURL: string,
@@ -25,6 +25,39 @@ export default class Context {
         this.token = options?.token || null;
         this.playlistUpdateFrequency = options?.playlistUpdateFrequency ?? 10;
     }
+
+    public setHost(host: string) {
+        this.instances.clear();
+        this.serverURL = host;
+        if (this.serverURL.toLowerCase().startsWith("http://")) {
+            this.serverAddress = this.serverURL.substring(7);
+        } else if (this.serverURL.toLowerCase().startsWith("https://")) {
+            this.serverAddress = this.serverURL.substring(8);
+        } else {
+            this.serverAddress = this.serverURL;
+        }
+    }
+
+    public getHost() {
+        return this.serverURL;
+    }
+
+    public getAddress() {
+        return this.serverAddress;
+    }
+
+    public setToken(token: string) {
+        this.token = token;
+        this.instances.forEach(instance => {
+            instance.setToken(token);
+        });
+    }
+
+    public getToken() {
+        return this.token;
+    }
+
+
 
     public makeRequest(method: "get" | "delete" | "head" | "options" | "post" | "put" | "patch", endpoint: string, body?: any): Promise<Response> {
         return new Promise((resolve, reject) => {

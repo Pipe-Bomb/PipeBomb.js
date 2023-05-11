@@ -24,6 +24,11 @@ export interface SearchResults {
     results: (Track | ExternalPlaylist)[]
 }
 
+export interface UserProfile {
+    user: User,
+    playlists: Playlist[]
+}
+
 export default class V1 extends APIVersion {
     constructor(context: Context, trackCache: TrackCache, collectionCache: CollectionCache) {
         super("v1", context, trackCache, collectionCache);
@@ -225,11 +230,24 @@ export default class V1 extends APIVersion {
         return null;
     }
 
-    public async getUser(userID: string) {
+    public async getUser(userID: string): Promise<UserProfile> {
+        const instance = await this.context.getInstanceForURI(userID);
+        userID = instance.id;
+        if (!instance.ownInstance) {
+            if (!instance.instance) throw `Server is not online`;
+            return await instance.instance.v1.getUser(userID);
+        }
+        
         const data = await this.makeRequest("get", `user/${userID}`);
         if (data.statusCode != 200) throw data;
 
-        const user: User = data.response.user;
+        const userData = data.response.user;
+        const user: User = {
+            userID: this.context.prefixAddress(userData.userID),
+            username: userData.username,
+            rawID: userData.userID
+        }
+        
         const playlists: Playlist[] = [];
 
         if (Array.isArray(data.response.playlists)) {

@@ -31,11 +31,11 @@ export default class PipeBomb {
     }
 
     public setHost(serverURL: string) {
-        this.context.serverURL = serverURL;
+        this.context.setHost(serverURL);
     }
 
     public setToken(token: string) {
-        this.context.token = token;
+        this.context.setToken(token);
     }
 
     public static async checkHost(serverURL: string): Promise<HostInfo | null> {
