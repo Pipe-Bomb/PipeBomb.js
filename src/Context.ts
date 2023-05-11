@@ -86,7 +86,7 @@ export default class Context {
     }
 
     public prefixAddress(id: string, ignoreOptions?: boolean) {
-        if ((!ignoreOptions && !this.options.includeAddressInIds) || (typeof id == "string" && id.includes("@"))) return id;
+        if ((!ignoreOptions && !this.options?.includeAddressInIds) || (typeof id == "string" && id.includes("@"))) return id;
 
         return this.serverAddress + "@" + id;
     }
