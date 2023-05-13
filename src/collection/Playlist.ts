@@ -266,4 +266,8 @@ export default class Playlist {
             throw e;
         }
     }
+
+    public getThumbnailUrl() {
+        return `${this.context.getHost()}/v1/playlists/${this.rawCollectionID}/thumbnail`;
+    }
 }

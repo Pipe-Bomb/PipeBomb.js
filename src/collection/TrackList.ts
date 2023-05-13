@@ -6,12 +6,14 @@ export default class TrackList {
     protected collectionName: string;
     public readonly service?: string;
     protected trackList: Track[] | null;
+    public readonly thumbnail: string | null = null;
 
-    constructor(collectionCache: CollectionCache, collectionID: string, collectionName: string, trackList: Track[] | null, service?: string) {
+    constructor(collectionCache: CollectionCache, collectionID: string, collectionName: string, trackList: Track[] | null, service?: string, thumbnail?: string) {
         this.collectionID = collectionID;
         this.collectionName = collectionName;
         this.trackList = trackList;
         if (service) this.service = service;
+        if (thumbnail) this.thumbnail = thumbnail;
         collectionCache.setCollection(this);
     }
 
