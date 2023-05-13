@@ -60,7 +60,7 @@ export default class Track {
         const existing = collectionCache.getCollection(`suggestions/${this.rawTrackID}`);
         if (existing && existing instanceof Suggestions) return existing;
 
-        const info = await this.context.makeRequest("get", `v1/tracks/${this.trackID}/suggested`);
+        const info = await this.context.makeRequest("get", `v1/tracks/${this.rawTrackID}/suggested`);
         if (info.statusCode != 200 || !Array.isArray(info.response)) return null;
         
         const tracks: Track[] = [];
