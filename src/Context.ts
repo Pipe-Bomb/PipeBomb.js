@@ -7,6 +7,7 @@ export default class Context {
 
     public readonly playlistUpdateFrequency: number;
     private token: string;
+    private privateKey: string;
     private serverAddress: string;
 
     public constructor(
@@ -23,6 +24,7 @@ export default class Context {
         }
 
         this.token = options?.token || null;
+        this.privateKey = options?.privateKey || null;
         this.playlistUpdateFrequency = options?.playlistUpdateFrequency ?? 10;
     }
 
@@ -48,13 +50,21 @@ export default class Context {
 
     public setToken(token: string) {
         this.token = token;
-        this.instances.forEach(instance => {
-            instance.setToken(token);
-        });
     }
 
     public getToken() {
         return this.token;
+    }
+
+    public setPrivateKey(token: string) {
+        this.token = token;
+        this.instances.forEach(instance => {
+            instance.context.setPrivateKey(token);
+        });
+    }
+
+    public getPrivateKey() {
+        return this.privateKey;
     }
 
 

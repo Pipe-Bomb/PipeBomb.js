@@ -4,10 +4,13 @@ import Context from "./Context.js";
 import TrackCache from "./music/TrackCache.js";
 import HostInfo from "./HostInfo.js";
 import V1 from "./version/V1.js";
+import * as Crypto from "crypto";
+import Cryptico from "cryptico";
 
 
 export interface PipeBombOptions {
     token?: string,
+    privateKey?: string,
     CollectionCacheTime?: number,
     playlistUpdateFrequency?: number,
     trackCacheTime?: number,
@@ -30,12 +33,42 @@ export default class PipeBomb {
         this.v1 = new V1(this.context, this.trackCache, this.collectionCache);
     }
 
-    public setHost(serverURL: string) {
-        this.context.setHost(serverURL);
-    }
+    public async authenticate(username: string, privateKey?: string) {
+        if (privateKey) {
+            this.context.setPrivateKey(privateKey);
+        } else {
+            privateKey = this.context.getPrivateKey();
+            if (!privateKey) {
+                throw `Pipe Bomb instance has not been assigned a private key`;
+            }
+        }
 
-    public setToken(token: string) {
+        const key = Cryptico.RSAKey.parse(Buffer.from(privateKey, "base64").toString("utf-8"));
+
+        const publicKey: string = Cryptico.publicKeyString(key);
+        const userID = PipeBomb.getUserIDFromPublicKey(publicKey);
+
+        const response = await this.context.makeRequest("post", "v1/login", {
+            user_id: userID,
+            public_key: publicKey
+        });
+
+        if (response.statusCode != 200 || typeof response.response?.secret != "string") throw response;
+
+        const secret: string = response.response.secret;
+        const decrypted = PipeBomb.decrypt(secret, privateKey);
+        
+        const tokenResponse = await this.context.makeRequest("post", "v1/authenticate", {
+            user_id: userID,
+            username,
+            secret: decrypted
+        });
+
+        if (tokenResponse.statusCode != 200 || typeof tokenResponse.response?.token != "string") throw tokenResponse;
+
+        const token: string = tokenResponse.response.token;
         this.context.setToken(token);
+        return token;
     }
 
     public static async checkHost(serverURL: string): Promise<HostInfo | null> {
@@ -83,5 +116,48 @@ export default class PipeBomb {
             };
         } catch {}
         return null;
+    }
+
+    public static getCredentialHash(username: string, password: string) {
+        const usernameHash = Crypto.createHash("sha256").update(username).digest("hex");
+        const hash = Crypto.createHash("sha256").update(password).update(usernameHash).digest("hex");
+        return hash;
+    }
+
+    public static getUserIDFromPublicKey(publicKey: string): string {
+        return Cryptico.publicKeyID(publicKey);
+    }
+
+    public static getAccountKeys(accountHash: string) {
+        const privateKeyJson = Cryptico.generateRSAKey(accountHash, 2048);
+        const privateKey = Buffer.from(JSON.stringify(privateKeyJson.toJSON())).toString("base64");
+
+        const publicKey = Cryptico.publicKeyString(privateKeyJson);
+        
+        return {
+            privateKey,
+            publicKey,
+            userID: this.getUserIDFromPublicKey(publicKey)
+        };
+    }
+
+    public static encrypt(message: JSON | string, publicKey: string): string {
+        try {
+            if (typeof message == "object") {
+                message = JSON.stringify(message);
+            }
+        } catch {}
+
+        const response = Cryptico.encrypt(message, publicKey);
+        if (response.status != "success") throw `Failed to encrypt payload with public key`;
+        return response.cipher;
+    }
+
+    public static decrypt(message: string, privateKey: string): JSON {
+        const key = Cryptico.RSAKey.parse(Buffer.from(privateKey, "base64").toString("utf-8"));
+
+        const response = Cryptico.decrypt(JSON.stringify(message), key);
+        if (response.status != "success") throw `Failed to decrypt payload with private key`;
+        return response.plaintext;
     }
 }

@@ -4,20 +4,20 @@ import Response from "./Response.js";
 export default class Request {
     private responseHandlers: ((response: Response) => void)[] = [];
 
-    constructor(method: "get" | "delete" | "head" | "options" | "post" | "put" | "patch", url: string, authorization: string, body?: any) {
+    constructor(method: "get" | "delete" | "head" | "options" | "post" | "put" | "patch", url: string, jwt: string, body?: any) {
 
         let request: Promise<AxiosResponse<any, any>>;
 
         if (["get", "delete"].includes(method)) {
             request = Axios[method](url, {
                 headers: {
-                    Authorization: authorization || ""
+                    Authorization: jwt ? "JWT " + jwt : undefined 
                 }
             });
         } else {
             request = Axios[method](url, body, {
                 headers: {
-                    Authorization: authorization || ""
+                    Authorization: jwt ? "JWT " + jwt : undefined 
                 }
             })
         }
