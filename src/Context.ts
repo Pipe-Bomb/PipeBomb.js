@@ -68,10 +68,10 @@ export default class Context {
         return this.username;
     }
 
-    public setPrivateKey(token: string) {
-        this.token = token;
+    public setPrivateKey(privateKey: string) {
+        this.privateKey = privateKey;
         this.instances.forEach(instance => {
-            instance.context.setPrivateKey(token);
+            instance.context.setPrivateKey(privateKey);
         });
     }
 

@@ -55,6 +55,8 @@ export default class PipeBomb {
         const publicKey: string = Cryptico.publicKeyString(key);
         const userID = PipeBomb.getUserIDFromPublicKey(publicKey);
 
+        this.context.setPrivateKey(privateKey);
+
         const response = await this.context.makeRequest("post", "v1/login", {
             user_id: userID,
             public_key: publicKey,
