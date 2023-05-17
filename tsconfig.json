@@ -6,7 +6,8 @@
         "sourceMap": true,
         "outDir": "dist",
         "watch": false,
-        "declaration": true
+        "declaration": true,
+        "allowSyntheticDefaultImports": true
     },
     "include": [
         "src/**/*"

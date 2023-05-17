@@ -9,6 +9,7 @@ export default class Context {
     private token: string;
     private privateKey: string;
     private serverAddress: string;
+    private username: string;
 
     public constructor(
         public serverURL: string,
@@ -56,6 +57,17 @@ export default class Context {
         return this.token;
     }
 
+    public setUsername(username: string) {
+        this.username = username;
+        for (let instance of this.instances.values()) {
+            instance.context.setUsername(username);
+        }
+    }
+
+    public getUsername() {
+        return this.username;
+    }
+
     public setPrivateKey(token: string) {
         this.token = token;
         this.instances.forEach(instance => {
@@ -83,6 +95,8 @@ export default class Context {
     }
 
     public async getInstanceForURI(uri: string) {
+        if (!this.isAuthenticated()) throw "Instance is not authenticated";
+
         if (typeof uri == "number" || !uri.includes("@")) return {
             ownInstance: true,
             instance: this.instance,
@@ -116,12 +130,22 @@ export default class Context {
             ...this.options,
             includeAddressInIds: true
         });
+
+        await instance.authenticate(this.username, {
+            privateKey: this.privateKey,
+            createIfMissing: true // todo, use callback to make this optional
+        })
+
         this.instances.set(parts[0], instance);
         return {
             ownInstance: false,
             instance: instance,
             id: parts[1]
         };
+    }
+
+    public isAuthenticated() {
+        return !!this.privateKey && !!this.token && !!this.username;
     }
 
     public getOptions() {

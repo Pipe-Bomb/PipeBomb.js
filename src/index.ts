@@ -4,8 +4,9 @@ import Context from "./Context.js";
 import TrackCache from "./music/TrackCache.js";
 import HostInfo from "./HostInfo.js";
 import V1 from "./version/V1.js";
-import * as Crypto from "crypto";
-import Cryptico from "cryptico";
+import Cryptico from "./Crypto.js";
+import CryptoJS from "crypto-js";
+import { BufferShim } from "buffer-esm";
 
 
 export interface PipeBombOptions {
@@ -33,9 +34,13 @@ export default class PipeBomb {
         this.v1 = new V1(this.context, this.trackCache, this.collectionCache);
     }
 
-    public async authenticate(username: string, privateKey?: string) {
+    public async authenticate(username: string, options?: {
+        privateKey?: string,
+        createIfMissing?: boolean
+    }) {
+        let privateKey = options?.privateKey;
         if (privateKey) {
-            this.context.setPrivateKey(privateKey);
+            this.context.setPrivateKey(options.privateKey);
         } else {
             privateKey = this.context.getPrivateKey();
             if (!privateKey) {
@@ -43,14 +48,17 @@ export default class PipeBomb {
             }
         }
 
-        const key = Cryptico.RSAKey.parse(Buffer.from(privateKey, "base64").toString("utf-8"));
+        this.context.setUsername(username);
+
+        const key = Cryptico.RSAKey.parse(BufferShim.from(privateKey, "base64").toString("utf-8"));
 
         const publicKey: string = Cryptico.publicKeyString(key);
         const userID = PipeBomb.getUserIDFromPublicKey(publicKey);
 
         const response = await this.context.makeRequest("post", "v1/login", {
             user_id: userID,
-            public_key: publicKey
+            public_key: publicKey,
+            create_if_missing: !!options?.createIfMissing
         });
 
         if (response.statusCode != 200 || typeof response.response?.secret != "string") throw response;
@@ -119,8 +127,9 @@ export default class PipeBomb {
     }
 
     public static getCredentialHash(username: string, password: string) {
-        const usernameHash = Crypto.createHash("sha256").update(username).digest("hex");
-        const hash = Crypto.createHash("sha256").update(password).update(usernameHash).digest("hex");
+        const passwordHash = CryptoJS.SHA256(password).toString();
+        const usernameHash = CryptoJS.SHA256(username).toString();
+        const hash = CryptoJS.SHA256(passwordHash + usernameHash).toString();
         return hash;
     }
 
@@ -128,14 +137,17 @@ export default class PipeBomb {
         return Cryptico.publicKeyID(publicKey);
     }
 
-    public static getAccountKeys(accountHash: string) {
+    public static generatePrivateKey(accountHash: string) {
         const privateKeyJson = Cryptico.generateRSAKey(accountHash, 2048);
-        const privateKey = Buffer.from(JSON.stringify(privateKeyJson.toJSON())).toString("base64");
+        const privateKey = BufferShim.from(JSON.stringify(privateKeyJson.toJSON())).toString("base64");
+        return privateKey;
+    }
 
-        const publicKey = Cryptico.publicKeyString(privateKeyJson);
-        
+    public static getAccountKeys(privateKey: string) {
+        const privateKeyJson = Cryptico.RSAKey.parse(BufferShim.from(privateKey, "base64").toString("utf-8"));
+        const publicKey: string = Cryptico.publicKeyString(privateKeyJson);
+
         return {
-            privateKey,
             publicKey,
             userID: this.getUserIDFromPublicKey(publicKey)
         };
@@ -153,11 +165,16 @@ export default class PipeBomb {
         return response.cipher;
     }
 
-    public static decrypt(message: string, privateKey: string): JSON {
-        const key = Cryptico.RSAKey.parse(Buffer.from(privateKey, "base64").toString("utf-8"));
+    public static decrypt(message: string, privateKey: string): JSON | string {
+        const key = Cryptico.RSAKey.parse(BufferShim.from(privateKey, "base64").toString("utf-8"));
 
         const response = Cryptico.decrypt(JSON.stringify(message), key);
         if (response.status != "success") throw `Failed to decrypt payload with private key`;
+        try {
+            if (response.plaintext.startsWith("[") || response.plaintext.startsWith("{")) {
+                return JSON.parse(response.plaintext);
+            }
+        } catch {}
         return response.plaintext;
     }
 }
