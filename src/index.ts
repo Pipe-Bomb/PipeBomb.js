@@ -6,7 +6,7 @@ import HostInfo from "./HostInfo.js";
 import V1 from "./version/V1.js";
 import Cryptico from "./Crypto.js";
 import CryptoJS from "crypto-js";
-import { BufferShim } from "buffer-esm";
+import { BufferShim } from "./lib/Buffer.js";
 
 
 export interface PipeBombOptions {
