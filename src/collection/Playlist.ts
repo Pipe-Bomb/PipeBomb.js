@@ -121,19 +121,6 @@ export default class Playlist {
         this.pushToCallbacks();
     }
 
-    /**
-     * @deprecated use {@link Playlist.setName} instead.
-     */
-    public async renameCollection(name: string): Promise<void> {
-        const response = await this.context.makeRequest("patch", `v1/playlists/${this.rawCollectionID}`, {
-            name
-        });
-        if (response.statusCode != 200) throw response;
-        this.name = name;
-        this.pushToCallbacks();
-    }
-
-
     public copyFromOtherPlaylist(collection: Playlist) {
         this.checkDeletion();
         if (this.collectionID != collection.collectionID) return;
