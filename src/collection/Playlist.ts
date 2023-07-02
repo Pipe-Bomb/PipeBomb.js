@@ -74,7 +74,7 @@ export default class Playlist {
 
     public async addTracks(...tracks: Track[]): Promise<void> {
         this.checkDeletion();
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
+        const response = await this.context.makeRequest("patch", `v1/playlists/${this.rawCollectionID}`, {
             tracks: {
                 add: tracks.map(track => {
                     return track.trackID
@@ -89,7 +89,7 @@ export default class Playlist {
 
     public async removeTracks(...tracks: Track[]): Promise<void> {
         this.checkDeletion();
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
+        const response = await this.context.makeRequest("patch", `v1/playlists/${this.rawCollectionID}`, {
             tracks: {
                 remove: tracks.map(track => {
                     return track.trackID
@@ -104,7 +104,7 @@ export default class Playlist {
 
     public async setName(name: string): Promise<void> {
         this.checkDeletion();
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
+        const response = await this.context.makeRequest("patch", `v1/playlists/${this.rawCollectionID}`, {
             name
         });
         if (response.statusCode != 200) throw response;
@@ -122,7 +122,7 @@ export default class Playlist {
     }
 
     public async renameCollection(name: string): Promise<void> {
-        const response = await this.context.makeRequest("put", `v1/playlists/${this.rawCollectionID}`, {
+        const response = await this.context.makeRequest("patch", `v1/playlists/${this.rawCollectionID}`, {
             name
         });
         if (response.statusCode != 200) throw response;
