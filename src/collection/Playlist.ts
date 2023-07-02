@@ -121,6 +121,9 @@ export default class Playlist {
         this.pushToCallbacks();
     }
 
+    /**
+     * @deprecated use {@link Playlist.setName} instead.
+     */
     public async renameCollection(name: string): Promise<void> {
         const response = await this.context.makeRequest("patch", `v1/playlists/${this.rawCollectionID}`, {
             name
